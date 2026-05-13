@@ -35,7 +35,6 @@
     cursor: none;
   }
 
-  /* CUSTOM CURSOR */
   #cursor {
     position: fixed;
     width: 20px; height: 20px;
@@ -65,7 +64,6 @@
     opacity: .5;
   }
 
-  /* SCANLINES */
   body::before {
     content:'';
     position:fixed;
@@ -86,7 +84,6 @@
     100% { background-position: 0 100px; }
   }
 
-  /* NOISE OVERLAY */
   body::after {
     content:'';
     position:fixed;
@@ -97,21 +94,13 @@
     z-index:999;
   }
 
-  /* ── INTRO SCREEN ── */
+  /* INTRO */
   #intro {
-    position:fixed;
-    inset:0;
-    background:var(--bg);
-    z-index:500;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    gap:2rem;
+    position:fixed;inset:0;background:var(--bg);z-index:500;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2rem;
     transition: opacity .8s ease, visibility .8s;
   }
   #intro.gone { opacity:0; visibility:hidden; pointer-events:none; }
-
   #intro-logo {
     font-family: 'VT323', monospace;
     font-size: clamp(3rem, 8vw, 7rem);
@@ -126,516 +115,279 @@
     30%{opacity:1} 32%{opacity:.3} 34%{opacity:1}
     60%{opacity:1} 62%{opacity:0} 64%{opacity:1} 100%{opacity:1}
   }
-
   #boot-log {
-    font-family:'Fira Code',monospace;
-    font-size:.85rem;
-    color:var(--green-dim);
-    width:min(500px, 90vw);
-    line-height:1.8;
+    font-family:'Fira Code',monospace;font-size:.85rem;color:var(--green-dim);
+    width:min(500px, 90vw);line-height:1.8;
   }
   .boot-line { overflow:hidden; white-space:nowrap; width:0; animation: typeLine .3s ease forwards; }
   @keyframes typeLine { to { width:100%; } }
-
-  #boot-bar-wrap {
-    width:min(400px,80vw);
-    height:4px;
-    background:var(--bg3);
-    border:1px solid var(--border);
-  }
-  #boot-bar {
-    height:100%;
-    background: linear-gradient(90deg, var(--green-dark), var(--green));
-    width:0;
-    transition: width .05s linear;
-    box-shadow:0 0 10px var(--green);
-  }
-
+  #boot-bar-wrap { width:min(400px,80vw);height:4px;background:var(--bg3);border:1px solid var(--border); }
+  #boot-bar { height:100%;background: linear-gradient(90deg, var(--green-dark), var(--green));width:0;transition: width .05s linear;box-shadow:0 0 10px var(--green); }
   #enter-btn {
-    font-family:'Orbitron',monospace;
-    font-size:1rem;
-    letter-spacing:.3em;
-    color:var(--bg);
-    background:var(--green);
-    border:none;
-    padding:.7rem 2.5rem;
-    cursor:none;
-    text-transform:uppercase;
-    display:none;
+    font-family:'Orbitron',monospace;font-size:1rem;letter-spacing:.3em;
+    color:var(--bg);background:var(--green);border:none;padding:.7rem 2.5rem;
+    cursor:none;text-transform:uppercase;display:none;
     animation: pulse 1.5s ease infinite;
     clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
   }
-  @keyframes pulse {
-    0%,100%{box-shadow:0 0 10px var(--green)} 50%{box-shadow:0 0 30px var(--green),0 0 60px var(--green-dim)}
-  }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 10px var(--green)} 50%{box-shadow:0 0 30px var(--green),0 0 60px var(--green-dim)} }
 
-  /* ── MAIN APP ── */
-  #app {
-    min-height:100vh;
-    display:flex;
-    flex-direction:column;
-  }
-
-  /* TOP BAR */
+  /* APP */
+  #app { min-height:100vh;display:flex;flex-direction:column; }
   #topbar {
-    border-bottom:1px solid var(--border);
-    padding:.6rem 2rem;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    background:var(--bg2);
-    position:sticky;
-    top:0;
-    z-index:100;
+    border-bottom:1px solid var(--border);padding:.6rem 2rem;
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--bg2);position:sticky;top:0;z-index:100;
   }
-  #topbar-logo {
-    font-family:'Orbitron',monospace;
-    font-size:1rem;
-    letter-spacing:.3em;
-    color:var(--green);
-    text-shadow:0 0 10px var(--green);
-  }
+  #topbar-logo { font-family:'Orbitron',monospace;font-size:1rem;letter-spacing:.3em;color:var(--green);text-shadow:0 0 10px var(--green); }
   #topbar-logo span { color:var(--cyan); }
-  .topbar-status {
-    font-size:.7rem;
-    color:var(--green-dim);
-    display:flex;
-    gap:1.5rem;
-  }
-  .status-dot {
-    display:inline-block;
-    width:6px;height:6px;
-    background:var(--green);
-    border-radius:50%;
-    margin-right:5px;
-    animation: blink 1.2s ease infinite;
-    box-shadow:0 0 6px var(--green);
-  }
+  .topbar-status { font-size:.7rem;color:var(--green-dim);display:flex;gap:1.5rem; }
+  .status-dot { display:inline-block;width:6px;height:6px;background:var(--green);border-radius:50%;margin-right:5px;animation: blink 1.2s ease infinite;box-shadow:0 0 6px var(--green); }
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
-  #clock { font-family:'VT323',monospace; font-size:1.2rem; color:var(--cyan); }
+  #clock { font-family:'VT323',monospace;font-size:1.2rem;color:var(--cyan); }
 
-  /* TABS */
-  #tabs {
-    display:flex;
-    border-bottom:1px solid var(--border);
-    background:var(--bg2);
-  }
+  #tabs { display:flex;border-bottom:1px solid var(--border);background:var(--bg2); }
   .tab {
-    padding:.6rem 1.5rem;
-    font-family:'Fira Code',monospace;
-    font-size:.8rem;
-    color:var(--green-dim);
-    cursor:none;
-    border-right:1px solid var(--border);
-    border-bottom:2px solid transparent;
-    transition:all .2s;
-    position:relative;
-    overflow:hidden;
+    padding:.6rem 1.5rem;font-family:'Fira Code',monospace;font-size:.8rem;
+    color:var(--green-dim);cursor:none;border-right:1px solid var(--border);
+    border-bottom:2px solid transparent;transition:all .2s;position:relative;overflow:hidden;
   }
-  .tab::before {
-    content:'>';
-    margin-right:.4rem;
-    opacity:0;
-    transition:.2s;
-  }
+  .tab::before { content:'>';margin-right:.4rem;opacity:0;transition:.2s; }
   .tab:hover::before, .tab.active::before { opacity:1; }
-  .tab.active {
-    color:var(--green);
-    border-bottom:2px solid var(--green);
-    background:var(--bg3);
-    text-shadow:0 0 8px var(--green);
-  }
-  .tab:hover { color:var(--green); background:var(--bg3); }
+  .tab.active { color:var(--green);border-bottom:2px solid var(--green);background:var(--bg3);text-shadow:0 0 8px var(--green); }
+  .tab:hover { color:var(--green);background:var(--bg3); }
 
-  /* PANELS */
-  .panel { display:none; padding:1.5rem 2rem; flex:1; }
-  .panel.active { display:flex; flex-direction:column; gap:1.5rem; }
+  .panel { display:none;padding:1.5rem 2rem;flex:1; }
+  .panel.active { display:flex;flex-direction:column;gap:1.5rem; }
 
-  /* ── PANEL 1: IMAGE TO ASCII ── */
-  .two-col {
-    display:grid;
-    grid-template-columns:320px 1fr;
-    gap:1.5rem;
-  }
+  .two-col { display:grid;grid-template-columns:320px 1fr;gap:1.5rem; }
   @media(max-width:900px){.two-col{grid-template-columns:1fr;}}
 
   .terminal-box {
-    border:1px solid var(--border);
-    background:var(--panel);
-    position:relative;
-    overflow:hidden;
+    border:1px solid var(--border);background:var(--panel);position:relative;overflow:hidden;
   }
   .terminal-box::before {
-    content:'';
-    position:absolute;
-    top:0;left:0;right:0;
-    height:2px;
+    content:'';position:absolute;top:0;left:0;right:0;height:2px;
     background:linear-gradient(90deg,transparent,var(--green),transparent);
     animation:scanH 3s ease infinite;
   }
   @keyframes scanH{0%{opacity:0;transform:scaleX(0)}50%{opacity:1;transform:scaleX(1)}100%{opacity:0;transform:scaleX(0)}}
   .t-header {
-    padding:.5rem 1rem;
-    border-bottom:1px solid var(--border);
-    font-size:.7rem;
-    color:var(--green-dim);
-    display:flex;
-    align-items:center;
-    gap:.5rem;
-    font-family:'Fira Code',monospace;
+    padding:.5rem 1rem;border-bottom:1px solid var(--border);font-size:.7rem;
+    color:var(--green-dim);display:flex;align-items:center;gap:.5rem;font-family:'Fira Code',monospace;
   }
   .t-header .dots { display:flex;gap:4px; }
   .t-header .dot { width:8px;height:8px;border-radius:50%; }
   .dot-r{background:#ff3a3a} .dot-y{background:#ffaa00} .dot-g{background:#00ff41;box-shadow:0 0 4px #00ff41}
   .t-body { padding:1rem; }
 
-  /* DROP ZONE */
   #dropzone {
-    border:1px dashed var(--green-dim);
-    padding:2rem 1rem;
-    text-align:center;
-    cursor:none;
-    transition:all .2s;
-    position:relative;
-    overflow:hidden;
+    border:1px dashed var(--green-dim);padding:2rem 1rem;text-align:center;
+    cursor:none;transition:all .2s;position:relative;overflow:hidden;
   }
-  #dropzone:hover, #dropzone.drag { border-color:var(--green); background:rgba(0,255,65,.03); }
-  #dropzone .dz-icon { font-size:2.5rem; line-height:1; margin-bottom:.5rem; color:var(--green-dim); }
-  #dropzone .dz-text { font-size:.75rem; color:var(--green-dim); line-height:1.8; }
+  #dropzone:hover, #dropzone.drag { border-color:var(--green);background:rgba(0,255,65,.03); }
+  #dropzone .dz-icon { font-size:2.5rem;line-height:1;margin-bottom:.5rem;color:var(--green-dim); }
+  #dropzone .dz-text { font-size:.75rem;color:var(--green-dim);line-height:1.8; }
   #dropzone .dz-text strong { color:var(--green); }
-  #img-preview { width:100%; margin-top:1rem; display:none; border:1px solid var(--border); max-height:200px; object-fit:contain; background:black; }
   #file-input { display:none; }
 
-  /* CONTROLS */
-  .ctrl-row {
-    display:flex;
-    flex-direction:column;
-    gap:.6rem;
-    margin-bottom:.8rem;
+  /* PREVIEW GIF */
+  #preview-section { display:none;margin-top:1rem; }
+  #img-preview { width:100%;display:none;border:1px solid var(--border);max-height:150px;object-fit:contain;background:black; }
+  #gif-preview-wrap { display:none;position:relative; }
+  #gif-preview-canvas {
+    width:100%;max-height:150px;object-fit:contain;background:black;
+    border:1px solid var(--border);display:block;
   }
-  .ctrl-label {
-    font-size:.7rem;
-    color:var(--green-dim);
-    font-family:'Fira Code',monospace;
-    text-transform:uppercase;
-    letter-spacing:.1em;
+  #gif-badge {
+    position:absolute;top:4px;right:4px;
+    background:var(--green);color:var(--bg);
+    font-family:'Fira Code',monospace;font-size:.6rem;
+    padding:2px 6px;font-weight:700;
   }
+  #gif-info {
+    font-family:'Fira Code',monospace;font-size:.65rem;color:var(--cyan-dim);
+    margin-top:.4rem;text-align:center;
+  }
+
+  .ctrl-row { display:flex;flex-direction:column;gap:.6rem;margin-bottom:.8rem; }
+  .ctrl-label { font-size:.7rem;color:var(--green-dim);font-family:'Fira Code',monospace;text-transform:uppercase;letter-spacing:.1em; }
   input[type=range] {
-    -webkit-appearance:none;
-    width:100%;
-    height:3px;
-    background:var(--bg3);
-    outline:none;
-    border:1px solid var(--border);
+    -webkit-appearance:none;width:100%;height:3px;background:var(--bg3);outline:none;border:1px solid var(--border);
   }
   input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance:none;
-    width:12px;height:12px;
-    background:var(--green);
-    cursor:none;
-    border-radius:0;
-    box-shadow:0 0 6px var(--green);
+    -webkit-appearance:none;width:12px;height:12px;background:var(--green);cursor:none;border-radius:0;box-shadow:0 0 6px var(--green);
   }
   input[type=range]::-webkit-slider-runnable-track {
     background:linear-gradient(90deg, var(--green-dark) var(--pct,0%), var(--bg3) var(--pct,0%));
   }
-  select {
-    width:100%;
-    background:var(--bg3);
-    color:var(--green);
-    border:1px solid var(--border);
-    padding:.3rem .5rem;
-    font-family:'Fira Code',monospace;
-    font-size:.8rem;
-    outline:none;
-    cursor:none;
-    appearance:none;
-    -webkit-appearance:none;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='6'%3E%3Cpath d='M0 0l6 6 6-6z' fill='%2300ff41'/%3E%3C/svg%3E");
-    background-repeat:no-repeat;
-    background-position:right .5rem center;
-  }
-  select:focus { border-color:var(--green); }
 
-  /* PRESETS GRID */
-  .presets-grid {
-    display:grid;
-    grid-template-columns:repeat(2,1fr);
-    gap:.4rem;
-  }
+  .presets-grid { display:grid;grid-template-columns:repeat(2,1fr);gap:.4rem; }
   .preset-btn {
-    background:var(--bg3);
-    border:1px solid var(--border);
-    color:var(--green-dim);
-    font-family:'Fira Code',monospace;
-    font-size:.7rem;
-    padding:.35rem .5rem;
-    cursor:none;
-    text-align:left;
-    transition:all .15s;
-    overflow:hidden;
-    position:relative;
+    background:var(--bg3);border:1px solid var(--border);color:var(--green-dim);
+    font-family:'Fira Code',monospace;font-size:.7rem;padding:.35rem .5rem;
+    cursor:none;text-align:left;transition:all .15s;overflow:hidden;position:relative;
   }
   .preset-btn::before {
-    content:'';
-    position:absolute;inset:0;
-    background:linear-gradient(45deg,transparent 40%,rgba(0,255,65,.04));
-    opacity:0;transition:.2s;
+    content:'';position:absolute;inset:0;
+    background:linear-gradient(45deg,transparent 40%,rgba(0,255,65,.04));opacity:0;transition:.2s;
   }
   .preset-btn:hover::before,.preset-btn.selected::before{opacity:1}
-  .preset-btn:hover,.preset-btn.selected {
-    border-color:var(--green);
-    color:var(--green);
-    text-shadow:0 0 6px var(--green);
-  }
+  .preset-btn:hover,.preset-btn.selected { border-color:var(--green);color:var(--green);text-shadow:0 0 6px var(--green); }
   .preset-btn.selected { background:rgba(0,255,65,.07); }
-  .preset-name { display:block; font-weight:600; }
-  .preset-sub { display:block; font-size:.6rem; color:var(--green-dim); margin-top:1px; }
-  .preset-btn.selected .preset-sub { color:var(--green-dim); }
+  .preset-name { display:block;font-weight:600; }
+  .preset-sub { display:block;font-size:.6rem;color:var(--green-dim);margin-top:1px; }
 
-  /* GENERATE BTN */
   .gen-btn {
-    width:100%;
-    background:transparent;
-    border:1px solid var(--green);
-    color:var(--green);
-    font-family:'Orbitron',monospace;
-    font-size:.8rem;
-    letter-spacing:.2em;
-    padding:.6rem;
-    cursor:none;
-    transition:all .2s;
-    position:relative;
-    overflow:hidden;
-    text-transform:uppercase;
+    width:100%;background:transparent;border:1px solid var(--green);color:var(--green);
+    font-family:'Orbitron',monospace;font-size:.8rem;letter-spacing:.2em;padding:.6rem;
+    cursor:none;transition:all .2s;position:relative;overflow:hidden;text-transform:uppercase;
   }
   .gen-btn::before {
-    content:'';
-    position:absolute;inset:0;
-    background:var(--green);
-    transform:translateX(-100%);
-    transition:transform .3s ease;
-    z-index:0;
+    content:'';position:absolute;inset:0;background:var(--green);transform:translateX(-100%);transition:transform .3s ease;z-index:0;
   }
   .gen-btn:hover::before { transform:translateX(0); }
-  .gen-btn span { position:relative;z-index:1; transition:color .3s; }
+  .gen-btn span { position:relative;z-index:1;transition:color .3s; }
   .gen-btn:hover span { color:var(--bg); }
 
-  /* OUTPUT */
-  #ascii-output-wrap {
-    position:relative;
-    overflow:hidden;
-  }
+  #ascii-output-wrap { position:relative;overflow:hidden; }
   #ascii-output {
-    font-family:'Share Tech Mono',monospace;
-    font-size:7px;
-    line-height:1.15;
-    white-space:pre;
-    color:var(--green);
-    overflow:auto;
-    max-height:75vh;
-    padding:.5rem;
-    background:var(--bg);
-    min-height:300px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    transition:all .3s;
+    font-family:'Share Tech Mono',monospace;font-size:7px;line-height:1.15;
+    white-space:pre;color:var(--green);overflow:auto;max-height:75vh;
+    padding:.5rem;background:var(--bg);min-height:300px;
+    display:flex;align-items:center;justify-content:center;transition:all .3s;
   }
-  #ascii-output.colored { color:inherit; }
-  #ascii-empty {
-    text-align:center;
-    color:var(--green-dim);
-    font-size:.8rem;
-    line-height:2;
+  #ascii-empty { text-align:center;color:var(--green-dim);font-size:.8rem;line-height:2; }
+
+  /* GIF FRAMES OUTPUT */
+  #gif-frames-section { display:none;flex-direction:column;gap:1rem; }
+  #gif-player-bar {
+    background:var(--bg2);border:1px solid var(--border);
+    padding:.6rem 1rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
   }
+  #gif-player-bar .gp-label { font-size:.7rem;color:var(--green-dim);font-family:'Fira Code',monospace; }
+  #frame-counter { font-family:'VT323',monospace;font-size:1.3rem;color:var(--cyan); }
+  .gp-btn {
+    background:var(--bg3);border:1px solid var(--border);color:var(--green-dim);
+    font-family:'Fira Code',monospace;font-size:.7rem;padding:.3rem .7rem;
+    cursor:none;transition:all .15s;
+  }
+  .gp-btn:hover,.gp-btn.active { border-color:var(--green);color:var(--green); }
+  #play-speed {
+    font-size:.65rem;color:var(--green-dim);font-family:'Fira Code',monospace;min-width:80px;
+  }
+
+  .frames-list {
+    display:flex;flex-direction:column;gap:.5rem;
+    max-height:65vh;overflow-y:auto;padding:.5rem;background:var(--bg);
+    border:1px solid var(--border);
+  }
+  .frame-item {
+    border:1px solid var(--border);background:var(--panel);
+    transition:border-color .15s;
+  }
+  .frame-item.current-frame { border-color:var(--green);box-shadow:0 0 8px rgba(0,255,65,.2); }
+  .frame-header {
+    padding:.3rem .6rem;border-bottom:1px solid var(--border);
+    font-size:.65rem;color:var(--green-dim);font-family:'Fira Code',monospace;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .frame-header span { color:var(--cyan); }
+  .frame-ascii {
+    font-family:'Share Tech Mono',monospace;font-size:5px;line-height:1.1;
+    white-space:pre;color:var(--green);padding:.5rem;
+    overflow:hidden;max-height:200px;cursor:none;
+  }
+  .frame-copy-btn {
+    background:transparent;border:none;color:var(--green-dim);
+    font-family:'Fira Code',monospace;font-size:.6rem;cursor:none;
+    padding:.1rem .4rem;transition:color .15s;
+  }
+  .frame-copy-btn:hover { color:var(--green); }
+
   .output-actions {
-    display:flex;
-    gap:.5rem;
-    padding:.5rem;
-    border-top:1px solid var(--border);
-    background:var(--bg2);
+    display:flex;gap:.5rem;padding:.5rem;border-top:1px solid var(--border);background:var(--bg2);flex-wrap:wrap;
   }
   .act-btn {
-    flex:1;
-    background:var(--bg3);
-    border:1px solid var(--border);
-    color:var(--green-dim);
-    font-family:'Fira Code',monospace;
-    font-size:.7rem;
-    padding:.35rem;
-    cursor:none;
-    transition:all .15s;
-    text-transform:uppercase;
-    letter-spacing:.05em;
+    flex:1;min-width:80px;background:var(--bg3);border:1px solid var(--border);color:var(--green-dim);
+    font-family:'Fira Code',monospace;font-size:.7rem;padding:.35rem;cursor:none;
+    transition:all .15s;text-transform:uppercase;letter-spacing:.05em;
   }
-  .act-btn:hover { border-color:var(--green); color:var(--green); }
+  .act-btn:hover { border-color:var(--green);color:var(--green); }
 
-  /* color options */
-  .color-opts { display:flex;gap:.3rem;flex-wrap:wrap; }
-  .color-swatch {
-    width:24px;height:24px;
-    border:1px solid var(--border);
-    cursor:none;
-    transition:transform .15s;
-  }
-  .color-swatch:hover,.color-swatch.active { transform:scale(1.2); border-color:white; }
-
-  /* ── PANEL 2: TEXT ASCII ── */
-  #text-panel { gap:1.5rem; }
+  /* TEXT PANEL */
   #text-input-area {
-    font-family:'Fira Code',monospace;
-    font-size:1rem;
-    background:var(--bg3);
-    border:1px solid var(--border);
-    color:var(--green);
-    padding:.8rem;
-    width:100%;
-    resize:none;
-    outline:none;
-    caret-color:var(--green);
-    transition:border-color .2s;
-    height:80px;
+    font-family:'Fira Code',monospace;font-size:1rem;background:var(--bg3);
+    border:1px solid var(--border);color:var(--green);padding:.8rem;width:100%;
+    resize:none;outline:none;caret-color:var(--green);transition:border-color .2s;height:80px;
   }
-  #text-input-area:focus { border-color:var(--green); box-shadow:0 0 10px rgba(0,255,65,.1); }
-  .font-picker {
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
-    gap:.5rem;
-  }
+  #text-input-area:focus { border-color:var(--green);box-shadow:0 0 10px rgba(0,255,65,.1); }
+  .font-picker { display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:.5rem; }
   .font-card {
-    border:1px solid var(--border);
-    padding:.5rem;
-    cursor:none;
-    transition:all .15s;
-    background:var(--bg3);
-    text-align:center;
+    border:1px solid var(--border);padding:.5rem;cursor:none;transition:all .15s;
+    background:var(--bg3);text-align:center;
   }
-  .font-card:hover,.font-card.selected { border-color:var(--green); background:rgba(0,255,65,.05); }
+  .font-card:hover,.font-card.selected { border-color:var(--green);background:rgba(0,255,65,.05); }
   .font-card.selected { box-shadow:0 0 10px rgba(0,255,65,.1); }
-  .font-card-name { font-size:.65rem; color:var(--green-dim); margin-bottom:.3rem; font-family:'Fira Code',monospace; }
-  .font-card-preview { font-size:1rem; color:var(--green); font-family:'VT323',monospace; }
+  .font-card-name { font-size:.65rem;color:var(--green-dim);margin-bottom:.3rem;font-family:'Fira Code',monospace; }
+  .font-card-preview { font-size:1rem;color:var(--green);font-family:'VT323',monospace; }
   .font-card.selected .font-card-name { color:var(--green); }
 
   #text-output {
-    font-family:'Share Tech Mono',monospace;
-    font-size:.75rem;
-    line-height:1.2;
-    white-space:pre;
-    color:var(--green);
-    overflow:auto;
-    padding:1rem;
-    background:var(--bg);
-    border:1px solid var(--border);
-    min-height:200px;
+    font-family:'Share Tech Mono',monospace;font-size:.75rem;line-height:1.2;
+    white-space:pre;color:var(--green);overflow:auto;padding:1rem;
+    background:var(--bg);border:1px solid var(--border);min-height:200px;
     text-shadow:0 0 4px rgba(0,255,65,.4);
   }
   .text-size-row { display:flex;gap:.5rem;align-items:center; }
   #txt-size-label { font-size:.7rem;color:var(--green-dim);font-family:'Fira Code',monospace;min-width:60px; }
 
-  /* GLITCH ANIM */
-  @keyframes glitch {
-    0%,100%{clip-path:inset(0 0 100% 0);transform:translate(0)}
-    10%{clip-path:inset(20% 0 50% 0);transform:translate(-4px,2px)}
-    20%{clip-path:inset(60% 0 10% 0);transform:translate(4px,-2px)}
-    30%{clip-path:inset(0 0 100% 0)}
-    40%{clip-path:inset(40% 0 30% 0);transform:translate(2px,1px)}
-    50%{clip-path:inset(0 0 100% 0)}
-  }
+  #matrix-canvas { position:fixed;top:0;left:0;width:100%;height:100%;opacity:.04;pointer-events:none;z-index:0; }
 
-  /* MATRIX RAIN BG */
-  #matrix-canvas {
-    position:fixed;
-    top:0;left:0;
-    width:100%;height:100%;
-    opacity:.04;
-    pointer-events:none;
-    z-index:0;
-  }
-
-  /* SCROLLBAR */
   ::-webkit-scrollbar { width:4px;height:4px; }
   ::-webkit-scrollbar-track { background:var(--bg); }
   ::-webkit-scrollbar-thumb { background:var(--green-dark);border-radius:0; }
   ::-webkit-scrollbar-thumb:hover { background:var(--green-dim); }
 
-  /* LOADING ANIMATION */
   #loading-overlay {
-    display:none;
-    position:absolute;inset:0;
-    background:rgba(1,13,3,.85);
-    z-index:50;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    gap:1rem;
-    font-family:'Fira Code',monospace;
-    font-size:.8rem;
-    color:var(--green);
+    display:none;position:absolute;inset:0;background:rgba(1,13,3,.85);z-index:50;
+    flex-direction:column;align-items:center;justify-content:center;gap:1rem;
+    font-family:'Fira Code',monospace;font-size:.8rem;color:var(--green);
   }
   #loading-overlay.show { display:flex; }
   .loader-bar { width:200px;height:2px;background:var(--bg3);border:1px solid var(--border); }
   .loader-fill { height:100%;background:var(--green);animation:load 1.5s ease infinite;box-shadow:0 0 10px var(--green); }
+  .loader-progress { width:200px;height:2px;background:var(--bg3);border:1px solid var(--border);margin-top:.5rem; }
+  .loader-progress-fill { height:100%;background:var(--cyan);width:0%;transition:width .1s;box-shadow:0 0 10px var(--cyan); }
   @keyframes load { 0%{width:0%} 100%{width:100%} }
 
-  /* NOTIFICATION */
   #notif {
-    position:fixed;
-    bottom:1.5rem;right:1.5rem;
-    background:var(--bg2);
-    border:1px solid var(--green);
-    color:var(--green);
-    font-family:'Fira Code',monospace;
-    font-size:.75rem;
-    padding:.6rem 1rem;
-    z-index:800;
-    opacity:0;
-    transform:translateY(20px);
-    transition:all .3s;
-    pointer-events:none;
+    position:fixed;bottom:1.5rem;right:1.5rem;background:var(--bg2);border:1px solid var(--green);
+    color:var(--green);font-family:'Fira Code',monospace;font-size:.75rem;padding:.6rem 1rem;
+    z-index:800;opacity:0;transform:translateY(20px);transition:all .3s;pointer-events:none;
   }
   #notif.show { opacity:1;transform:translateY(0); }
 
   .range-val { font-family:'VT323',monospace;font-size:1.1rem;color:var(--cyan); }
-
-  /* SECTION DIVIDERS */
   .section-label {
-    font-family:'Fira Code',monospace;
-    font-size:.65rem;
-    color:var(--green-dim);
-    letter-spacing:.2em;
-    text-transform:uppercase;
-    margin-bottom:.5rem;
-    display:flex;
-    align-items:center;
-    gap:.5rem;
+    font-family:'Fira Code',monospace;font-size:.65rem;color:var(--green-dim);
+    letter-spacing:.2em;text-transform:uppercase;margin-bottom:.5rem;
+    display:flex;align-items:center;gap:.5rem;
   }
   .section-label::after { content:'';flex:1;height:1px;background:var(--border); }
 
-  /* CHECKBOX TOGGLE */
   .toggle-row { display:flex;align-items:center;gap:.5rem;cursor:none; }
   .toggle-row input[type=checkbox] {
-    appearance:none;
-    width:14px;height:14px;
-    border:1px solid var(--green-dim);
-    background:var(--bg3);
-    cursor:none;
-    position:relative;
-    flex-shrink:0;
+    appearance:none;width:14px;height:14px;border:1px solid var(--green-dim);
+    background:var(--bg3);cursor:none;position:relative;flex-shrink:0;
   }
   .toggle-row input[type=checkbox]:checked { background:var(--green);box-shadow:0 0 6px var(--green); }
   .toggle-row input[type=checkbox]:checked::after {
-    content:'✓';
-    position:absolute;
-    top:50%;left:50%;
-    transform:translate(-50%,-50%);
-    color:var(--bg);
-    font-size:10px;
-    line-height:1;
+    content:'✓';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    color:var(--bg);font-size:10px;line-height:1;
   }
   .toggle-label { font-size:.7rem;color:var(--green-dim);font-family:'Fira Code',monospace; }
 
-  /* responsive */
   @media(max-width:700px){
     #topbar { padding:.5rem 1rem; }
     .panel { padding:1rem; }
@@ -649,7 +401,7 @@
 <div id="cursor-trail"></div>
 <div id="notif"></div>
 
-<!-- ═══════════════════ INTRO ═══════════════════ -->
+<!-- INTRO -->
 <div id="intro">
   <div id="intro-logo">ASCII//FORGE</div>
   <pre id="boot-log" aria-hidden="true"></pre>
@@ -657,14 +409,14 @@
   <button id="enter-btn" onclick="enterApp()">[ INICIAR SISTEMA ]</button>
 </div>
 
-<!-- ═══════════════════ APP ═══════════════════ -->
+<!-- APP -->
 <div id="app" hidden>
   <div id="topbar">
-    <div id="topbar-logo">ASCII<span>//</span>FORGE <span style="font-size:.6rem;opacity:.5;">v2.0.1</span></div>
+    <div id="topbar-logo">ASCII<span>//</span>FORGE <span style="font-size:.6rem;opacity:.5;">v2.1.0</span></div>
     <div class="topbar-status">
       <span><span class="status-dot"></span>SISTEMA OK</span>
       <span><span class="status-dot" style="background:var(--cyan);box-shadow:0 0 6px var(--cyan)"></span>MOTOR ACTIVO</span>
-      <span><span class="status-dot" style="animation-delay:.6s"></span>MEMORIA LIBRE</span>
+      <span><span class="status-dot" style="animation-delay:.6s"></span>GIF READY</span>
     </div>
     <div id="clock">00:00:00</div>
   </div>
@@ -674,7 +426,7 @@
     <button class="tab" onclick="switchTab(1)">02_TEXT_GENERATOR</button>
   </div>
 
-  <!-- ─── PANEL 1: IMAGE ─── -->
+  <!-- PANEL 1: IMAGE -->
   <div class="panel active" id="p0">
     <div class="two-col">
       <!-- LEFT CONTROLS -->
@@ -683,21 +435,30 @@
         <div class="terminal-box">
           <div class="t-header">
             <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
-            <span>INPUT_STREAM :: IMAGEN</span>
+            <span>INPUT_STREAM :: IMAGEN / GIF</span>
           </div>
           <div class="t-body">
             <div id="dropzone" onclick="document.getElementById('file-input').click()"
-                 ondragover="e=>e.preventDefault()" ondragleave="onDragLeave(event)"
+                 ondragleave="onDragLeave(event)"
                  ondrop="onDrop(event)" ondragover="onDragOver(event)">
               <div class="dz-icon">⬡</div>
               <div class="dz-text">
                 <strong>ARRASTRAR / SOLTAR</strong><br>
                 o click para seleccionar<br>
-                <span style="font-size:.65rem;color:var(--green-dark)">PNG · JPG · GIF · WEBP</span><br>
-                <span style="font-size:.6rem;color:var(--cyan-dim)">PNG con fondo transparente = espacios vacíos</span>
+                <span style="font-size:.65rem;color:var(--green-dark)">PNG · JPG · WEBP · <span style="color:var(--cyan)">GIF ✦</span></span>
               </div>
             </div>
-            <img id="img-preview" alt="preview">
+
+            <!-- Static image preview -->
+            <img id="img-preview" alt="preview" style="width:100%;margin-top:1rem;display:none;border:1px solid var(--border);max-height:150px;object-fit:contain;background:black;">
+
+            <!-- GIF preview -->
+            <div id="gif-preview-wrap" style="display:none;margin-top:1rem;position:relative;">
+              <canvas id="gif-preview-canvas" style="width:100%;max-height:150px;display:block;background:black;border:1px solid var(--border);"></canvas>
+              <div id="gif-badge">GIF ANIMADO</div>
+            </div>
+            <div id="gif-info" style="display:none;font-family:'Fira Code',monospace;font-size:.65rem;color:var(--cyan-dim);margin-top:.4rem;text-align:center;"></div>
+
             <input type="file" id="file-input" accept="image/*" onchange="onFileChange(event)">
           </div>
         </div>
@@ -713,20 +474,9 @@
             <div class="ctrl-row">
               <div style="display:flex;justify-content:space-between;align-items:center;">
                 <span class="ctrl-label">ANCHO (COLS)</span>
-                <span class="range-val" id="lbl-cols">120</span>
+                <span class="range-val" id="lbl-cols">80</span>
               </div>
-              <input type="range" min="40" max="250" value="120" id="r-cols" oninput="updateRange(this,'lbl-cols')">
-            </div>
-
-            <div class="section-label">COLOR ASCII</div>
-            <div class="color-opts">
-              <div class="color-swatch active" style="background:#00ff41" data-color="#00ff41" onclick="selectColor(this)" title="Matrix Green"></div>
-              <div class="color-swatch" style="background:#00e5ff" data-color="#00e5ff" onclick="selectColor(this)" title="Cyan"></div>
-              <div class="color-swatch" style="background:#ffaa00" data-color="#ffaa00" onclick="selectColor(this)" title="Amber"></div>
-              <div class="color-swatch" style="background:#ff2244" data-color="#ff2244" onclick="selectColor(this)" title="Red"></div>
-              <div class="color-swatch" style="background:#cc44ff" data-color="#cc44ff" onclick="selectColor(this)" title="Purple"></div>
-              <div class="color-swatch" style="background:white" data-color="white" onclick="selectColor(this)" title="White"></div>
-              <div class="color-swatch" style="background:linear-gradient(45deg,#f00,#0f0,#00f)" data-color="rgb" onclick="selectColor(this)" title="Color RGB" data-rgb="1"></div>
+              <input type="range" min="40" max="200" value="80" id="r-cols" oninput="updateRange(this,'lbl-cols')">
             </div>
 
             <div class="section-label">CONTRASTE / BRILLO</div>
@@ -774,36 +524,79 @@
       </div>
 
       <!-- RIGHT OUTPUT -->
-      <div class="terminal-box" style="display:flex;flex-direction:column;">
-        <div class="t-header">
-          <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
-          <span id="output-title">OUTPUT_STREAM :: AGUARDANDO SEÑAL</span>
-        </div>
-        <div id="ascii-output-wrap" style="flex:1;display:flex;flex-direction:column;position:relative;">
-          <div id="loading-overlay">
-            <span>PROCESANDO IMAGEN...</span>
-            <div class="loader-bar"><div class="loader-fill"></div></div>
-            <span id="load-status" style="font-size:.65rem;color:var(--green-dim)">analizando píxeles</span>
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+
+        <!-- Static output -->
+        <div class="terminal-box" id="static-output-box" style="display:flex;flex-direction:column;">
+          <div class="t-header">
+            <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+            <span id="output-title">OUTPUT_STREAM :: AGUARDANDO SEÑAL</span>
           </div>
-          <div id="ascii-output">
-            <div id="ascii-empty">
-              ░░ SIN SEÑAL ░░<br>
-              <span style="font-size:.7rem">Cargá una imagen y presioná PROCESAR</span>
+          <div id="ascii-output-wrap" style="flex:1;display:flex;flex-direction:column;position:relative;">
+            <div id="loading-overlay">
+              <span>PROCESANDO...</span>
+              <div class="loader-bar"><div class="loader-fill"></div></div>
+              <div class="loader-progress"><div class="loader-progress-fill" id="progress-fill"></div></div>
+              <span id="load-status" style="font-size:.65rem;color:var(--green-dim)">analizando píxeles</span>
+            </div>
+            <div id="ascii-output">
+              <div id="ascii-empty">
+                ░░ SIN SEÑAL ░░<br>
+                <span style="font-size:.7rem">Cargá una imagen o GIF y presioná PROCESAR</span>
+              </div>
+            </div>
+            <div class="output-actions">
+              <button class="act-btn" onclick="copyAscii()">[ COPIAR ]</button>
+              <button class="act-btn" onclick="downloadAscii()">[ DESCARGAR TXT ]</button>
+              <button class="act-btn" onclick="downloadPng()">[ GUARDAR PNG ]</button>
+              <button class="act-btn" onclick="changeOutputSize(-1)">[ - ]</button>
+              <button class="act-btn" onclick="changeOutputSize(1)">[ + ]</button>
             </div>
           </div>
-          <div class="output-actions">
-            <button class="act-btn" onclick="copyAscii()">[ COPIAR ]</button>
-            <button class="act-btn" onclick="downloadAscii()">[ DESCARGAR TXT ]</button>
-            <button class="act-btn" onclick="downloadPng()">[ GUARDAR PNG ]</button>
-            <button class="act-btn" onclick="document.getElementById('ascii-output').style.fontSize=(parseFloat(document.getElementById('ascii-output').style.fontSize||7)-1)+'px'">[ - ]</button>
-            <button class="act-btn" onclick="document.getElementById('ascii-output').style.fontSize=(parseFloat(document.getElementById('ascii-output').style.fontSize||7)+1)+'px'">[ + ]</button>
+        </div>
+
+        <!-- GIF frames output -->
+        <div id="gif-frames-section" style="display:none;flex-direction:column;gap:1rem;">
+          <div class="terminal-box">
+            <div class="t-header">
+              <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+              <span id="gif-output-title">GIF_STREAM :: FRAMES ASCII</span>
+            </div>
+            <!-- Playback bar -->
+            <div id="gif-player-bar">
+              <span class="gp-label">FRAME:</span>
+              <span id="frame-counter">01 / 01</span>
+              <button class="gp-btn" onclick="prevFrame()">[ ◀ ]</button>
+              <button class="gp-btn active" id="play-btn" onclick="togglePlay()">[ ▶ PLAY ]</button>
+              <button class="gp-btn" onclick="nextFrame()">[ ▶ ]</button>
+              <span id="play-speed">VEL: 1x</span>
+              <button class="gp-btn" onclick="cycleSpeed()">[ SPEED ]</button>
+              <button class="gp-btn" onclick="copyAllFrames()">[ COPIAR TODO ]</button>
+              <button class="gp-btn" onclick="downloadAllFrames()">[ DESCARGAR TXT ]</button>
+            </div>
+            <!-- Preview del frame actual animado -->
+            <div style="padding:.5rem;background:var(--bg);">
+              <div id="gif-ascii-preview" style="font-family:'Share Tech Mono',monospace;font-size:6px;line-height:1.1;white-space:pre;color:var(--green);overflow:auto;max-height:300px;padding:.3rem;min-height:100px;text-align:left;"></div>
+            </div>
+          </div>
+
+          <!-- Lista de todos los frames -->
+          <div class="terminal-box">
+            <div class="t-header">
+              <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+              <span>TODOS LOS FRAMES :: SCROLL PARA VER</span>
+            </div>
+            <div class="t-body" style="padding:.5rem;">
+              <div class="frames-list" id="frames-list"></div>
+            </div>
           </div>
         </div>
+
       </div>
     </div>
   </div>
 
-  <!-- ─── PANEL 2: TEXT ─── -->
+  <!-- PANEL 2: TEXT -->
   <div class="panel" id="p1">
     <div class="terminal-box">
       <div class="t-header">
@@ -823,16 +616,8 @@
 
     <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center;">
       <div class="text-size-row">
-        <span id="txt-size-label">TAMAÑO: 0.75rem</span>
+        <span id="txt-size-label">TAMAÑO: 10px</span>
         <input type="range" min="4" max="20" value="10" id="txt-size" style="width:120px" oninput="updateTextSize(this)">
-      </div>
-      <div class="color-opts" style="flex:1;">
-        <div class="color-swatch active" style="background:#00ff41" data-color="#00ff41" onclick="selectTextColor(this)" title="Green"></div>
-        <div class="color-swatch" style="background:#00e5ff" data-color="#00e5ff" onclick="selectTextColor(this)" title="Cyan"></div>
-        <div class="color-swatch" style="background:#ffaa00" data-color="#ffaa00" onclick="selectTextColor(this)" title="Amber"></div>
-        <div class="color-swatch" style="background:#ff2244" data-color="#ff2244" onclick="selectTextColor(this)" title="Red"></div>
-        <div class="color-swatch" style="background:#cc44ff" data-color="#cc44ff" onclick="selectTextColor(this)" title="Purple"></div>
-        <div class="color-swatch" style="background:white" data-color="white" onclick="selectTextColor(this)" title="White"></div>
       </div>
     </div>
 
@@ -854,9 +639,19 @@
   </div>
 </div>
 
+<!-- omggif library for GIF decoding -->
+<script>
+// omggif - GIF decoder (simplified MIT licensed implementation)
+// Based on omggif by Dean McNamee
+var GifReader=(function(){function GifReader(buf){this.buf=buf;this.parseHeader();}GifReader.prototype={parseHeader:function(){var buf=this.buf;if(buf[0]!==0x47||buf[1]!==0x49||buf[2]!==0x46)throw new Error("Invalid GIF signature");this.width=buf[6]|buf[7]<<8;this.height=buf[8]|buf[9]<<8;var packed=buf[10];this.globalColorTableFlag=(packed>>7)&1;this.colorResolution=((packed>>4)&7)+1;this.sortFlag=(packed>>3)&1;var gctSize=packed&7;this.bgColorIndex=buf[11];this.pixelAspectRatio=buf[12];this.pos=13;if(this.globalColorTableFlag){this.globalColorTable=[];for(var i=0;i<(2<<gctSize);i++){this.globalColorTable.push([buf[this.pos],buf[this.pos+1],buf[this.pos+2]]);this.pos+=3;}}this.frames=[];this.parseBlocks();},parseBlocks:function(){var buf=this.buf;while(this.pos<buf.length){var block=buf[this.pos++];if(block===0x3B)break;if(block===0x2C){this.parseImageDescriptor();}else if(block===0x21){this.parseExtension();}else{break;}}},parseExtension:function(){var buf=this.buf;var label=buf[this.pos++];if(label===0xF9){this.pos++;var packed=buf[this.pos++];this.disposalMethod=(packed>>2)&7;this.transparentColorFlag=packed&1;this.delayTime=(buf[this.pos]|buf[this.pos+1]<<8)*10;this.pos+=2;this.transparentColorIndex=buf[this.pos++];this.pos++;}else{this.skipSubBlocks();}},skipSubBlocks:function(){var buf=this.buf;var size;while((size=buf[this.pos++])!==0){this.pos+=size;}},parseImageDescriptor:function(){var buf=this.buf;var frame={};frame.x=buf[this.pos]|buf[this.pos+1]<<8;this.pos+=2;frame.y=buf[this.pos]|buf[this.pos+1]<<8;this.pos+=2;frame.width=buf[this.pos]|buf[this.pos+1]<<8;this.pos+=2;frame.height=buf[this.pos]|buf[this.pos+1]<<8;this.pos+=2;var packed=buf[this.pos++];var localColorTableFlag=(packed>>7)&1;var interlaceFlag=(packed>>6)&1;var lctSize=packed&7;var colorTable=this.globalColorTable;if(localColorTableFlag){colorTable=[];for(var i=0;i<(2<<lctSize);i++){colorTable.push([buf[this.pos],buf[this.pos+1],buf[this.pos+2]]);this.pos+=3;}}frame.colorTable=colorTable;frame.transparentIndex=this.transparentColorFlag?this.transparentColorIndex:-1;frame.delay=this.delayTime||100;frame.disposalMethod=this.disposalMethod||0;this.pos++;// skip lzw min code size, decode later
+frame.lzwStart=this.pos-1;frame.lzwMinCodeSize=buf[frame.lzwStart];this.pos=frame.lzwStart+1;var dataLen=0;var scanPos=this.pos;while(buf[scanPos]!==0){dataLen+=buf[scanPos];scanPos+=buf[scanPos]+1;}frame.lzwDataLen=dataLen;// collect lzw data
+var lzwData=new Uint8Array(dataLen);var dp=0;while(buf[this.pos]!==0){var sz=buf[this.pos++];lzwData.set(buf.subarray(this.pos,this.pos+sz),dp);dp+=sz;this.pos+=sz;}this.pos++;// skip block terminator
+frame.lzwData=lzwData;frame.pixels=this.decodeLZW(frame);this.frames.push(frame);},decodeLZW:function(frame){var minCodeSize=frame.lzwMinCodeSize;var data=frame.lzwData;var pixels=new Uint8Array(frame.width*frame.height);var clearCode=1<<minCodeSize;var eofCode=clearCode+1;var codeSize=minCodeSize+1;var codeMask=(1<<codeSize)-1;var dict=[];function initDict(){dict=[];for(var i=0;i<clearCode+2;i++)dict[i]=[i<clearCode?i:-1];codeSize=minCodeSize+1;codeMask=(1<<codeSize)-1;}initDict();var bitBuf=0,bitCount=0,bytePos=0;function readCode(){while(bitCount<codeSize&&bytePos<data.length){bitBuf|=data[bytePos++]<<bitCount;bitCount+=8;}var code=bitBuf&codeMask;bitBuf>>=codeSize;bitCount-=codeSize;return code;}var pixelPos=0;var prev=null;while(true){var code=readCode();if(code===eofCode||bytePos>data.length+2)break;if(code===clearCode){initDict();prev=null;continue;}var entry;if(code<dict.length){entry=dict[code];}else if(prev!==null&&code===dict.length){entry=prev.concat(prev[0]);}else{break;}for(var i=0;i<entry.length;i++){if(pixelPos<pixels.length)pixels[pixelPos++]=entry[i];}if(prev!==null&&dict.length<4096){dict.push(prev.concat(entry[0]));}if(dict.length>=(1<<codeSize)&&codeSize<12){codeSize++;codeMask=(1<<codeSize)-1;}prev=entry;}return pixels;}};return GifReader;})();
+</script>
+
 <script>
 // ═══════════════════════════════════════
-// CURSOR PERSONALIZADO
+// CURSOR
 // ═══════════════════════════════════════
 const cur = document.getElementById('cursor');
 const trail = document.getElementById('cursor-trail');
@@ -879,8 +674,7 @@ document.addEventListener('mouseup', () => { cur.style.width='20px'; cur.style.h
   const ctx = canvas.getContext('2d');
   let cols, drops;
   function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
     cols = Math.floor(canvas.width / 14);
     drops = Array(cols).fill(1);
   }
@@ -901,21 +695,19 @@ document.addEventListener('mouseup', () => { cur.style.width='20px'; cur.style.h
 })();
 
 // ═══════════════════════════════════════
-// INTRO BOOT SEQUENCE
+// INTRO
 // ═══════════════════════════════════════
 const bootLines = [
   '[OK] Inicializando núcleo...',
   '[OK] Cargando driver de imagen...',
-  '[OK] Módulo ASCII::Engine v2.0 listo',
+  '[OK] Módulo ASCII::Engine v2.1 listo',
+  '[OK] Soporte GIF multi-frame activado',
   '[OK] Algoritmos de conversión cargados',
-  '[OK] Soporte PNG transparente activado',
-  '[OK] Motor de fuentes ASCII 3D listo',
+  '[OK] Decodificador LZW listo',
   '[OK] Interfaz de usuario compilada',
   '[  ] Verificando integridad del sistema...',
   '[OK] Sistema listo. Bienvenido.',
 ];
-
-let bootDone = false;
 async function runBoot() {
   const log = document.getElementById('boot-log');
   const bar = document.getElementById('boot-bar');
@@ -937,15 +729,12 @@ async function runBoot() {
   document.getElementById('enter-btn').style.display = 'block';
 }
 runBoot();
-
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
-
 function enterApp() {
   document.getElementById('intro').classList.add('gone');
   document.getElementById('app').hidden = false;
   initClock();
 }
-
 function initClock() {
   setInterval(() => {
     const now = new Date();
@@ -971,33 +760,22 @@ function updateRange(el, lblId, decimals=0) {
   const pct = (el.value - el.min) / (el.max - el.min) * 100;
   el.style.setProperty('--pct', pct + '%');
 }
-document.querySelectorAll('input[type=range]').forEach(r => updateRange(r, r.id.replace('r-','lbl-'), r.step?.includes('.') ? 1 : 0));
-
-// ═══════════════════════════════════════
-// COLOR SELECTION
-// ═══════════════════════════════════════
-let asciiColor = '#00ff41';
-let asciiRgb = false;
-function selectColor(el) {
-  document.querySelectorAll('#p0 .color-swatch').forEach(s => s.classList.remove('active'));
-  el.classList.add('active');
-  asciiRgb = !!el.dataset.rgb;
-  asciiColor = asciiRgb ? '#00ff41' : el.dataset.color;
-  document.getElementById('ascii-output').style.color = asciiRgb ? '#00ff41' : asciiColor;
-}
-
-let textColor = '#00ff41';
-function selectTextColor(el) {
-  document.querySelectorAll('#p1 .color-swatch').forEach(s => s.classList.remove('active'));
-  el.classList.add('active');
-  textColor = el.dataset.color;
-  document.getElementById('text-output').style.color = textColor;
-}
+document.querySelectorAll('input[type=range]').forEach(r => {
+  const lblId = r.id.replace('r-','lbl-');
+  if (document.getElementById(lblId)) {
+    updateRange(r, lblId, r.step && r.step.includes('.') ? 1 : 0);
+  }
+});
 
 // ═══════════════════════════════════════
 // DROP ZONE
 // ═══════════════════════════════════════
 let loadedImage = null;
+let loadedGifFrames = null; // [{canvas, delay}, ...]
+let isGif = false;
+let gifPreviewInterval = null;
+let gifPreviewFrame = 0;
+
 function onDragOver(e) { e.preventDefault(); document.getElementById('dropzone').classList.add('drag'); }
 function onDragLeave(e) { document.getElementById('dropzone').classList.remove('drag'); }
 function onDrop(e) {
@@ -1009,6 +787,23 @@ function onDrop(e) {
 function onFileChange(e) { if (e.target.files[0]) loadFile(e.target.files[0]); }
 
 function loadFile(file) {
+  stopGifPreview();
+  // Hide everything
+  document.getElementById('img-preview').style.display = 'none';
+  document.getElementById('gif-preview-wrap').style.display = 'none';
+  document.getElementById('gif-info').style.display = 'none';
+  isGif = false;
+  loadedGifFrames = null;
+  loadedImage = null;
+
+  if (file.type === 'image/gif') {
+    loadGif(file);
+  } else {
+    loadStaticImage(file);
+  }
+}
+
+function loadStaticImage(file) {
   const reader = new FileReader();
   reader.onload = ev => {
     const img = new Image();
@@ -1022,6 +817,119 @@ function loadFile(file) {
     img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
+}
+
+function loadGif(file) {
+  showNotif('Decodificando GIF...');
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const buffer = new Uint8Array(ev.target.result);
+      const gif = new GifReader(buffer);
+      const frames = decodeGifFrames(gif);
+      loadedGifFrames = frames;
+      isGif = true;
+
+      // Show preview
+      const wrap = document.getElementById('gif-preview-wrap');
+      const previewCanvas = document.getElementById('gif-preview-canvas');
+      wrap.style.display = 'block';
+      previewCanvas.width = gif.width;
+      previewCanvas.height = gif.height;
+
+      const info = document.getElementById('gif-info');
+      info.style.display = 'block';
+      info.textContent = `${frames.length} FRAMES · ${gif.width}×${gif.height}px · GIF ANIMADO`;
+
+      startGifPreview(frames, previewCanvas);
+      showNotif(`GIF cargado: ${frames.length} frames`);
+    } catch(e) {
+      showNotif('Error al decodificar GIF: ' + e.message);
+      console.error(e);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function decodeGifFrames(gif) {
+  // Render each frame composited onto a canvas
+  const w = gif.width, h = gif.height;
+  const frames = [];
+  const compositeCanvas = document.createElement('canvas');
+  compositeCanvas.width = w; compositeCanvas.height = h;
+  const compCtx = compositeCanvas.getContext('2d');
+  const prevCanvas = document.createElement('canvas');
+  prevCanvas.width = w; prevCanvas.height = h;
+
+  for (let fi = 0; fi < gif.frames.length; fi++) {
+    const f = gif.frames[fi];
+    const disposal = f.disposalMethod;
+
+    // Save state before drawing (for disposal=3)
+    if (disposal === 3) {
+      const prevCtx = prevCanvas.getContext('2d');
+      prevCtx.clearRect(0,0,w,h);
+      prevCtx.drawImage(compositeCanvas,0,0);
+    }
+
+    // Draw this frame's pixels onto composite
+    const imgData = compCtx.createImageData(w, h);
+    const d = imgData.data;
+    // Keep existing composite for disposal=0,1
+    const existingData = compCtx.getImageData(0,0,w,h);
+
+    // Copy existing
+    for (let i = 0; i < d.length; i++) d[i] = existingData.data[i];
+
+    // Overlay frame pixels
+    for (let y = 0; y < f.height; y++) {
+      for (let x = 0; x < f.width; x++) {
+        const pi = y * f.width + x;
+        const px = f.pixels[pi];
+        if (px === f.transparentIndex) continue;
+        const col = f.colorTable[px] || [0,0,0];
+        const idx = ((f.y + y) * w + (f.x + x)) * 4;
+        d[idx]   = col[0];
+        d[idx+1] = col[1];
+        d[idx+2] = col[2];
+        d[idx+3] = 255;
+      }
+    }
+    compCtx.putImageData(imgData, 0, 0);
+
+    // Snapshot this frame
+    const snapCanvas = document.createElement('canvas');
+    snapCanvas.width = w; snapCanvas.height = h;
+    snapCanvas.getContext('2d').drawImage(compositeCanvas, 0, 0);
+    frames.push({ canvas: snapCanvas, delay: f.delay || 100 });
+
+    // Handle disposal
+    if (disposal === 2) {
+      compCtx.clearRect(f.x, f.y, f.width, f.height);
+    } else if (disposal === 3) {
+      compCtx.clearRect(0,0,w,h);
+      compCtx.drawImage(prevCanvas,0,0);
+    }
+  }
+  return frames;
+}
+
+function startGifPreview(frames, previewCanvas) {
+  stopGifPreview();
+  gifPreviewFrame = 0;
+  const ctx = previewCanvas.getContext('2d');
+  function showFrame() {
+    const f = frames[gifPreviewFrame];
+    ctx.clearRect(0,0,previewCanvas.width,previewCanvas.height);
+    ctx.drawImage(f.canvas, 0, 0, previewCanvas.width, previewCanvas.height);
+    gifPreviewFrame = (gifPreviewFrame + 1) % frames.length;
+    gifPreviewInterval = setTimeout(showFrame, f.delay);
+  }
+  showFrame();
+}
+
+function stopGifPreview() {
+  if (gifPreviewInterval) { clearTimeout(gifPreviewInterval); gifPreviewInterval = null; }
 }
 
 // ═══════════════════════════════════════
@@ -1041,7 +949,6 @@ const PRESETS = [
   { name:'SYMBOLS', sub:'solo símbolos', chars:'♠♣♥♦○●◇◆□■△▲▽▼', inv:false, edge:false, dith:false },
   { name:'MICRO', sub:'alta densidad', chars:'⣿⣾⣼⣸⣰⣠⣀⠀', inv:false, edge:false, dith:false },
 ];
-
 let selectedPreset = 0;
 
 function initPresets() {
@@ -1067,36 +974,207 @@ initPresets();
 // ═══════════════════════════════════════
 // ASCII IMAGE ENGINE
 // ═══════════════════════════════════════
+let asciiColor = '#00ff41';
+
 function generateAscii() {
-  if (!loadedImage) { showNotif('¡Cargá una imagen primero!'); return; }
+  if (!loadedImage && !loadedGifFrames) { showNotif('¡Cargá una imagen primero!'); return; }
   const lo = document.getElementById('loading-overlay');
   lo.classList.add('show');
-  const statuses = ['analizando píxeles','calculando luminosidad','aplicando dithering','mapeando caracteres','renderizando salida'];
-  let si = 0;
-  const sv = setInterval(() => {
-    document.getElementById('load-status').textContent = statuses[si++ % statuses.length];
-  }, 300);
 
-  setTimeout(() => {
-    try {
-      const result = doConvert();
-      const out = document.getElementById('ascii-output');
-      out.innerHTML = '';
-      out.style.color = asciiColor;
-      if (asciiRgb) {
-        renderRgbAscii(out, result.lines, result.colorData);
-      } else {
+  if (isGif && loadedGifFrames) {
+    generateGifAscii();
+  } else {
+    const statuses = ['analizando píxeles','calculando luminosidad','aplicando dithering','mapeando caracteres','renderizando salida'];
+    let si = 0;
+    const sv = setInterval(() => {
+      document.getElementById('load-status').textContent = statuses[si++ % statuses.length];
+    }, 300);
+    setTimeout(() => {
+      try {
+        const result = doConvertCanvas(loadedImage);
+        const out = document.getElementById('ascii-output');
+        out.innerHTML = '';
+        out.style.color = asciiColor;
         out.textContent = result.lines.join('\n');
-      }
-      document.getElementById('output-title').textContent = `OUTPUT :: ${result.lines[0].length}×${result.lines.length} chars`;
-    } catch(e) { showNotif('Error: ' + e.message); }
-    clearInterval(sv);
-    lo.classList.remove('show');
-  }, 800);
+        document.getElementById('output-title').textContent = `OUTPUT :: ${result.lines[0].length}×${result.lines.length} chars`;
+        document.getElementById('static-output-box').style.display = 'flex';
+        document.getElementById('gif-frames-section').style.display = 'none';
+      } catch(e) { showNotif('Error: ' + e.message); }
+      clearInterval(sv);
+      lo.classList.remove('show');
+    }, 600);
+  }
 }
 
-function doConvert() {
-  const img = loadedImage;
+async function generateGifAscii() {
+  const frames = loadedGifFrames;
+  document.getElementById('load-status').textContent = 'procesando frames GIF...';
+  document.getElementById('progress-fill').style.width = '0%';
+
+  const asciiFrames = [];
+
+  // Process frames with small delays to not block UI
+  for (let fi = 0; fi < frames.length; fi++) {
+    await new Promise(resolve => setTimeout(resolve, 10));
+    document.getElementById('progress-fill').style.width = ((fi+1)/frames.length*100) + '%';
+    document.getElementById('load-status').textContent = `frame ${fi+1} / ${frames.length}`;
+    try {
+      const result = doConvertCanvas(frames[fi].canvas);
+      asciiFrames.push({ lines: result.lines, delay: frames[fi].delay });
+    } catch(e) { console.error('Frame error:', e); }
+  }
+
+  document.getElementById('loading-overlay').classList.remove('show');
+
+  if (asciiFrames.length === 0) { showNotif('Error procesando frames'); return; }
+
+  // Hide static, show GIF output
+  document.getElementById('static-output-box').style.display = 'none';
+  const gifSection = document.getElementById('gif-frames-section');
+  gifSection.style.display = 'flex';
+  document.getElementById('gif-output-title').textContent = `GIF_STREAM :: ${asciiFrames.length} FRAMES`;
+
+  // Build frames list
+  const list = document.getElementById('frames-list');
+  list.innerHTML = '';
+  asciiFrames.forEach((f, i) => {
+    const item = document.createElement('div');
+    item.className = 'frame-item' + (i===0?' current-frame':'');
+    item.id = 'frame-item-' + i;
+    item.innerHTML = `
+      <div class="frame-header">
+        <span>FRAME_<span>${String(i+1).padStart(3,'0')}</span></span>
+        <span style="color:var(--green-dim)">${f.lines[0]?.length||0}×${f.lines.length} · ${f.delay}ms</span>
+        <button class="frame-copy-btn" onclick="copySingleFrame(${i})">[ COPIAR ]</button>
+      </div>
+      <div class="frame-ascii" id="frame-ascii-${i}">${escapeHtml(f.lines.join('\n'))}</div>
+    `;
+    list.appendChild(item);
+  });
+
+  // Init playback
+  initGifPlayback(asciiFrames);
+  showNotif(`GIF procesado: ${asciiFrames.length} frames listos`);
+}
+
+// GIF PLAYBACK STATE
+let gifAsciiFrames = [];
+let gifPlayFrame = 0;
+let gifPlayTimeout = null;
+let gifPlaying = false;
+let gifSpeedMult = 1;
+const speedOptions = [0.5, 1, 2, 4];
+let speedIdx = 1;
+
+function initGifPlayback(frames) {
+  gifAsciiFrames = frames;
+  gifPlayFrame = 0;
+  gifPlaying = false;
+  gifSpeedMult = 1;
+  speedIdx = 1;
+  updateFrameDisplay(0);
+}
+
+function updateFrameDisplay(idx) {
+  gifPlayFrame = idx;
+  const f = gifAsciiFrames[idx];
+  if (!f) return;
+
+  // Update preview
+  const preview = document.getElementById('gif-ascii-preview');
+  preview.textContent = f.lines.join('\n');
+
+  // Update counter
+  document.getElementById('frame-counter').textContent =
+    String(idx+1).padStart(2,'0') + ' / ' + String(gifAsciiFrames.length).padStart(2,'0');
+
+  // Highlight in list
+  document.querySelectorAll('.frame-item').forEach(el => el.classList.remove('current-frame'));
+  const cur = document.getElementById('frame-item-' + idx);
+  if (cur) {
+    cur.classList.add('current-frame');
+    cur.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+}
+
+function togglePlay() {
+  if (gifPlaying) {
+    stopPlay();
+  } else {
+    startPlay();
+  }
+}
+
+function startPlay() {
+  gifPlaying = true;
+  document.getElementById('play-btn').textContent = '[ ■ STOP ]';
+  playNext();
+}
+
+function stopPlay() {
+  gifPlaying = false;
+  clearTimeout(gifPlayTimeout);
+  document.getElementById('play-btn').textContent = '[ ▶ PLAY ]';
+}
+
+function playNext() {
+  if (!gifPlaying) return;
+  const f = gifAsciiFrames[gifPlayFrame];
+  updateFrameDisplay(gifPlayFrame);
+  gifPlayFrame = (gifPlayFrame + 1) % gifAsciiFrames.length;
+  const delay = Math.max(20, (f.delay || 100) / gifSpeedMult);
+  gifPlayTimeout = setTimeout(playNext, delay);
+}
+
+function prevFrame() {
+  stopPlay();
+  gifPlayFrame = (gifPlayFrame - 1 + gifAsciiFrames.length) % gifAsciiFrames.length;
+  updateFrameDisplay(gifPlayFrame);
+}
+
+function nextFrame() {
+  stopPlay();
+  gifPlayFrame = (gifPlayFrame + 1) % gifAsciiFrames.length;
+  updateFrameDisplay(gifPlayFrame);
+}
+
+function cycleSpeed() {
+  speedIdx = (speedIdx + 1) % speedOptions.length;
+  gifSpeedMult = speedOptions[speedIdx];
+  document.getElementById('play-speed').textContent = `VEL: ${gifSpeedMult}x`;
+}
+
+function copySingleFrame(idx) {
+  const f = gifAsciiFrames[idx];
+  navigator.clipboard.writeText(f.lines.join('\n')).then(() => showNotif(`Frame ${idx+1} copiado!`));
+}
+
+function copyAllFrames() {
+  const text = gifAsciiFrames.map((f,i) =>
+    `=== FRAME ${i+1}/${gifAsciiFrames.length} (${f.delay}ms) ===\n` + f.lines.join('\n')
+  ).join('\n\n');
+  navigator.clipboard.writeText(text).then(() => showNotif(`${gifAsciiFrames.length} frames copiados!`));
+}
+
+function downloadAllFrames() {
+  const text = gifAsciiFrames.map((f,i) =>
+    `=== FRAME ${i+1}/${gifAsciiFrames.length} (${f.delay}ms) ===\n` + f.lines.join('\n')
+  ).join('\n\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type:'text/plain'}));
+  a.download = 'ascii-gif-frames.txt';
+  a.click();
+  showNotif('Frames descargados!');
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ═══════════════════════════════════════
+// CONVERSION ENGINE
+// ═══════════════════════════════════════
+function doConvertCanvas(source) {
   const cols = parseInt(document.getElementById('r-cols').value);
   const contrast = parseFloat(document.getElementById('r-contrast').value);
   const brightness = parseInt(document.getElementById('r-bright').value);
@@ -1108,15 +1186,18 @@ function doConvert() {
   if (preset.inv !== invert) chars = chars.split('').reverse().join('');
 
   const aspect = 0.55;
-  const rows = Math.round((img.height / img.width) * cols * aspect);
+  let srcW, srcH;
+  if (source instanceof HTMLCanvasElement) { srcW = source.width; srcH = source.height; }
+  else { srcW = source.width || source.naturalWidth; srcH = source.height || source.naturalHeight; }
+
+  const rows = Math.round((srcH / srcW) * cols * aspect);
   const canvas = document.createElement('canvas');
   canvas.width = cols; canvas.height = rows;
   const ctx = canvas.getContext('2d');
-  ctx.drawImage(img, 0, 0, cols, rows);
+  ctx.drawImage(source, 0, 0, cols, rows);
   const data = ctx.getImageData(0, 0, cols, rows);
   const px = data.data;
 
-  // Grayscale + alpha
   const gray = new Float32Array(cols * rows);
   const alpha = new Uint8Array(cols * rows);
   for (let i = 0; i < cols * rows; i++) {
@@ -1128,46 +1209,26 @@ function doConvert() {
     alpha[i] = a;
   }
 
-  // Edge detection (Sobel)
   let edgeMap = null;
-  if (edgeMode) {
-    edgeMap = sobelEdge(gray, cols, rows);
-  }
+  if (edgeMode) edgeMap = sobelEdge(gray, cols, rows);
 
-  // Dithering
   let work = gray.slice();
-  if (dither && !edgeMode) {
-    work = floydSteinberg(work, cols, rows, chars.length);
-  }
+  if (dither && !edgeMode) work = floydSteinberg(work, cols, rows, chars.length);
 
-  const colorData = [];
   const lines = [];
   for (let y = 0; y < rows; y++) {
     let line = '';
-    const cRow = [];
     for (let x = 0; x < cols; x++) {
       const idx = y * cols + x;
-      const a = alpha[idx];
-      if (a < 30) { line += ' '; cRow.push(null); continue; }
-
+      if (alpha[idx] < 30) { line += ' '; continue; }
       let val = edgeMap ? edgeMap[idx] : work[idx];
       if (invert) val = 255 - val;
       const ci = Math.floor((val / 255) * (chars.length - 1));
-      const ch = chars[Math.max(0, Math.min(chars.length-1, ci))];
-
-      if (asciiRgb) {
-        const r = px[idx*4], g = px[idx*4+1], b = px[idx*4+2];
-        cRow.push(`rgb(${r},${g},${b})`);
-      } else {
-        cRow.push(null);
-      }
-      line += ch;
+      line += chars[Math.max(0, Math.min(chars.length-1, ci))];
     }
     lines.push(line);
-    colorData.push(cRow);
   }
-
-  return { lines, colorData };
+  return { lines };
 }
 
 function sobelEdge(gray, w, h) {
@@ -1204,30 +1265,11 @@ function floydSteinberg(gray, w, h, levels) {
   return buf;
 }
 
-function renderRgbAscii(container, lines, colorData) {
-  const frag = document.createDocumentFragment();
-  lines.forEach((line, y) => {
-    const row = colorData[y];
-    [...line].forEach((ch, x) => {
-      const span = document.createElement('span');
-      span.textContent = ch;
-      if (row[x]) span.style.color = row[x];
-      frag.appendChild(span);
-    });
-    frag.appendChild(document.createTextNode('\n'));
-  });
-  container.appendChild(frag);
-}
-
 // ═══════════════════════════════════════
-// EXPORT
+// STATIC EXPORT
 // ═══════════════════════════════════════
-function getAsciiText() {
-  return document.getElementById('ascii-output').innerText;
-}
-function copyAscii() {
-  navigator.clipboard.writeText(getAsciiText()).then(() => showNotif('¡Copiado al portapapeles!'));
-}
+function getAsciiText() { return document.getElementById('ascii-output').innerText; }
+function copyAscii() { navigator.clipboard.writeText(getAsciiText()).then(() => showNotif('¡Copiado al portapapeles!')); }
 function downloadAscii() {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([getAsciiText()], {type:'text/plain'}));
@@ -1242,8 +1284,7 @@ function downloadPng() {
   canvas.width = lines[0].length * fontSize * 0.6 + 20;
   canvas.height = lines.length * lh + 20;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#010d03';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#010d03'; ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = asciiColor;
   ctx.font = `${fontSize}px 'Share Tech Mono',monospace`;
   lines.forEach((l, i) => ctx.fillText(l, 10, 10 + (i+1)*lh));
@@ -1252,9 +1293,14 @@ function downloadPng() {
   a.download = 'ascii-art.png'; a.click();
   showNotif('PNG descargado!');
 }
+function changeOutputSize(delta) {
+  const out = document.getElementById('ascii-output');
+  const cur = parseFloat(out.style.fontSize || 7);
+  out.style.fontSize = Math.max(3, cur + delta) + 'px';
+}
 
 // ═══════════════════════════════════════
-// TEXT ASCII ENGINE (BigText)
+// TEXT ASCII ENGINE
 // ═══════════════════════════════════════
 const ASCII_FONTS = {
   'BLOCK 3D': {
@@ -1301,12 +1347,6 @@ const ASCII_FONTS = {
       '?':['  __ ',' /  \\','    /','     ','  .  '],
       '.':['   ','   ','   ','   ','  .'],
       '-':['   ','   ','===','   ','   '],
-      '_':['   ','   ','   ','   ','___'],
-      '+':['  | ','=====','  | ','   ','   '],
-      '#':['| | ','=====','| | ','=====','| | '],
-      '@':['  __ ',' /  \\','|@@@|','\\@@/ ',' \\__/'],
-      '/':['    /','   / ','  /  ',' /   ','/    '],
-      '\\':['\\    ',' \\   ','  \\  ','   \\ ','    \\'],
     }
   },
   'SLANT': {
@@ -1353,11 +1393,6 @@ const ASCII_FONTS = {
       '?':['  /=\\ ','  \\ | ','   /  ','   |  ','      ','   .  '],
       '.':['   ','   ','   ','   ','   ','  .'],
       '-':['   ','   ','===','   ','   ','   '],
-      '_':['   ','   ','   ','   ','   ','___'],
-      '#':['  | | ','=======','  | | ','=======','  | | ','       '],
-      '@':['   /===\\ ','  / @@@  ','  | @@@@ ','  | @@   ','   \\    ','    \\===/ '],
-      '/':['    /','    /','   / ','  /  ',' /   ','/    '],
-      '\\':['\\    ',' \\   ','  \\  ','   \\ ','   \\ ','    \\'],
     }
   },
   'PIPES': {
@@ -1404,11 +1439,6 @@ const ASCII_FONTS = {
       '?':['  -- ','    \\','   / ','     ','  .  '],
       '.':['   ','   ','   ','   ','  o'],
       '-':['   ','   ','---','   ','   '],
-      '_':['   ','   ','   ','   ','___'],
-      '#':['#|#','###','#|#','###','#|#'],
-      '@':['  ---','|@@@|','|@@@|','|@@  ','  ---'],
-      '/':['   /','   /','  / ','  / ',' /  '],
-      '\\':['\\   ',' \\  ','  \\ ','  \\ ','   \\'],
     }
   },
   'SIMPLE': {
@@ -1427,7 +1457,7 @@ const ASCII_FONTS = {
       'K':['|/','|>','|\\'],
       'L':['| ','| ','|='],
       'M':['|\\/|','|  |','|  |'],
-      'N':['|\\|','|  ','| |'],
+      'N':['|\\|','|  \\','|   '],
       'O':['(-)','(o)','(_)'],
       'P':['|= ','|=-','|   '],
       'Q':['(-)',' o ','(_\\'],
@@ -1440,7 +1470,7 @@ const ASCII_FONTS = {
       'X':['X','|','X'],
       'Y':['Y','|','|'],
       'Z':['=-','  /','=-'],
-      '0':['0','0','0'],
+      '0':['(0)','(0)','(0)'],
       '1':['|','|','|'],
       '2':['_-','/','_-'],
       '3':['_-','-|','_-'],
@@ -1455,11 +1485,6 @@ const ASCII_FONTS = {
       '?':['_-',' /','  .'],
       '.':['  ','  ','. '],
       '-':['   ','---','   '],
-      '_':['   ','   ','___'],
-      '#':['#|#','#|#','#|#'],
-      '@':['@@@','@@ ','@@@'],
-      '/':['  /','/ ','/ '],
-      '\\':['\\  ',' \\ ',' \\'],
     }
   },
   'SHADOW': {
@@ -1506,11 +1531,6 @@ const ASCII_FONTS = {
       '?':['  __ ','    \\','    )','     ','  .  '],
       '.':['   ','   ','   ','   ','  .'],
       '-':['   ','   ','===','   ','   '],
-      '_':['   ','   ','   ','   ','___'],
-      '#':['| | ','=====','| | ','=====','| | '],
-      '@':['  __ ','/ @@ \\','| @@ |',' \\@@ ','  __ '],
-      '/':['    /','   / ','  /  ',' /   ','/    '],
-      '\\':['\\    ',' \\   ','  \\  ','   \\ ','    \\'],
     }
   },
   'MINIMAL': {
@@ -1557,11 +1577,6 @@ const ASCII_FONTS = {
       '?':['?','? ','.'],
       '.':['  ','  ','. '],
       '-':['   ','-- ','   '],
-      '_':['  ','  ','__'],
-      '#':['#|','##','#|'],
-      '@':['@@@','@ @','@@@'],
-      '/':['  /','  /','/ '],
-      '\\':['\\  ',' \\ ',' \\'],
     }
   },
 };
@@ -1601,8 +1616,6 @@ function renderText() {
   });
   const out = document.getElementById('text-output');
   out.textContent = rows.join('\n');
-  out.style.color = textColor;
-  out.style.textShadow = `0 0 8px ${textColor}66`;
 }
 
 document.getElementById('text-input-area').addEventListener('input', renderText);
@@ -1633,7 +1646,6 @@ function showNotif(msg) {
   setTimeout(() => n.classList.remove('show'), 2500);
 }
 
-// init
 renderText();
 </script>
 </body>
