@@ -1,0 +1,2641 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASCII//FORGE — Terminal Art Engine v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&family=Orbitron:wght@400;700;900&family=Fira+Code:wght@300;400;500&family=Major+Mono+Display&family=Anonymous+Pro:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #00ff41;
+    --green-dim: #00aa29;
+    --green-dark: #003b0f;
+    --cyan: #00e5ff;
+    --cyan-dim: #0099aa;
+    --red: #ff2244;
+    --amber: #ffaa00;
+    --bg: #010d03;
+    --bg2: #020f05;
+    --bg3: #041208;
+    --panel: #030f04;
+    --border: #00ff4133;
+    --border-bright: #00ff4166;
+    --scanline: rgba(0,255,65,0.03);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: none;
+  }
+  #cursor {
+    position: fixed; width: 20px; height: 20px;
+    border: 1px solid var(--green); pointer-events: none; z-index: 9999;
+    transform: translate(-50%,-50%); transition: width .15s, height .15s;
+  }
+  #cursor::after {
+    content:''; position:absolute; top:50%; left:50%;
+    width:4px; height:4px; background:var(--green); transform:translate(-50%,-50%);
+  }
+  #cursor-trail {
+    position: fixed; width: 6px; height: 6px; background: var(--green-dim);
+    border-radius: 50%; pointer-events: none; z-index: 9998;
+    transform: translate(-50%,-50%); transition: left .08s, top .08s; opacity: .5;
+  }
+  body::before {
+    content:''; position:fixed; top:0; left:0; right:0; bottom:0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, var(--scanline) 2px, var(--scanline) 4px);
+    pointer-events:none; z-index:1000; animation: scanMove 8s linear infinite;
+  }
+  @keyframes scanMove { 0%{background-position:0 0} 100%{background-position:0 100px} }
+  body::after {
+    content:''; position:fixed; top:0; left:0; right:0; bottom:0; opacity:.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    pointer-events:none; z-index:999;
+  }
+
+  /* INTRO */
+  #intro {
+    position:fixed; inset:0; background:var(--bg); z-index:500;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2rem;
+    transition: opacity .8s ease, visibility .8s;
+  }
+  #intro.gone { opacity:0; visibility:hidden; pointer-events:none; }
+  #intro-logo {
+    font-family:'VT323',monospace; font-size:clamp(3rem,8vw,7rem); color:var(--green);
+    text-shadow:0 0 20px var(--green), 0 0 60px var(--green-dark); letter-spacing:.2em;
+    animation:flickerIn 1.5s ease forwards; text-align:center;
+  }
+  @keyframes flickerIn {
+    0%{opacity:0} 10%{opacity:1} 12%{opacity:0} 14%{opacity:1}
+    30%{opacity:1} 32%{opacity:.3} 34%{opacity:1}
+    60%{opacity:1} 62%{opacity:0} 64%{opacity:1} 100%{opacity:1}
+  }
+  #boot-log { font-family:'Fira Code',monospace; font-size:.85rem; color:var(--green-dim); width:min(500px,90vw); line-height:1.8; }
+  .boot-line { overflow:hidden; white-space:nowrap; width:0; animation:typeLine .3s ease forwards; }
+  @keyframes typeLine { to{width:100%} }
+  #boot-bar-wrap { width:min(400px,80vw); height:4px; background:var(--bg3); border:1px solid var(--border); }
+  #boot-bar { height:100%; background:linear-gradient(90deg,var(--green-dark),var(--green)); width:0; transition:width .05s linear; box-shadow:0 0 10px var(--green); }
+  #enter-btn {
+    font-family:'Orbitron',monospace; font-size:1rem; letter-spacing:.3em;
+    color:var(--bg); background:var(--green); border:none; padding:.7rem 2.5rem;
+    cursor:none; text-transform:uppercase; display:none; animation:pulse 1.5s ease infinite;
+    clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);
+  }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 10px var(--green)} 50%{box-shadow:0 0 30px var(--green),0 0 60px var(--green-dim)} }
+
+  /* APP */
+  #app { min-height:100vh; display:flex; flex-direction:column; }
+  #topbar {
+    border-bottom:1px solid var(--border); padding:.6rem 2rem;
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--bg2); position:sticky; top:0; z-index:100;
+  }
+  #topbar-logo { font-family:'Orbitron',monospace; font-size:1rem; letter-spacing:.3em; color:var(--green); text-shadow:0 0 10px var(--green); }
+  #topbar-logo span { color:var(--cyan); }
+  .topbar-status { font-size:.7rem; color:var(--green-dim); display:flex; gap:1.5rem; }
+  .status-dot { display:inline-block; width:6px; height:6px; background:var(--green); border-radius:50%; margin-right:5px; animation:blink 1.2s ease infinite; box-shadow:0 0 6px var(--green); }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+  #clock { font-family:'VT323',monospace; font-size:1.2rem; color:var(--cyan); }
+  #tabs { display:flex; border-bottom:1px solid var(--border); background:var(--bg2); }
+  .tab {
+    padding:.6rem 1.5rem; font-family:'Fira Code',monospace; font-size:.8rem;
+    color:var(--green-dim); cursor:none; border-right:1px solid var(--border);
+    border-bottom:2px solid transparent; transition:all .2s; position:relative; overflow:hidden;
+  }
+  .tab::before { content:'>'; margin-right:.4rem; opacity:0; transition:.2s; }
+  .tab:hover::before, .tab.active::before { opacity:1; }
+  .tab.active { color:var(--green); border-bottom:2px solid var(--green); background:var(--bg3); text-shadow:0 0 8px var(--green); }
+  .tab:hover { color:var(--green); background:var(--bg3); }
+  .panel { display:none; padding:1.5rem 2rem; flex:1; }
+  .panel.active { display:flex; flex-direction:column; gap:1.5rem; }
+  .two-col { display:grid; grid-template-columns:320px 1fr; gap:1.5rem; }
+  @media(max-width:900px){.two-col{grid-template-columns:1fr;}}
+
+  .terminal-box {
+    border:1px solid var(--border); background:var(--panel); position:relative; overflow:hidden;
+  }
+  .terminal-box::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    background:linear-gradient(90deg,transparent,var(--green),transparent);
+    animation:scanH 3s ease infinite;
+  }
+  @keyframes scanH{0%{opacity:0;transform:scaleX(0)}50%{opacity:1;transform:scaleX(1)}100%{opacity:0;transform:scaleX(0)}}
+  .t-header {
+    padding:.5rem 1rem; border-bottom:1px solid var(--border); font-size:.7rem;
+    color:var(--green-dim); display:flex; align-items:center; gap:.5rem; font-family:'Fira Code',monospace;
+  }
+  .t-header .dots { display:flex; gap:4px; }
+  .t-header .dot { width:8px; height:8px; border-radius:50%; }
+  .dot-r{background:#ff3a3a} .dot-y{background:#ffaa00} .dot-g{background:#00ff41;box-shadow:0 0 4px #00ff41}
+  .t-body { padding:1rem; }
+
+  #dropzone {
+    border:1px dashed var(--green-dim); padding:2rem 1rem; text-align:center;
+    cursor:none; transition:all .2s; position:relative; overflow:hidden;
+  }
+  #dropzone:hover, #dropzone.drag { border-color:var(--green); background:rgba(0,255,65,.03); }
+  #dropzone .dz-icon { font-size:2.5rem; line-height:1; margin-bottom:.5rem; color:var(--green-dim); }
+  #dropzone .dz-text { font-size:.75rem; color:var(--green-dim); line-height:1.8; }
+  #dropzone .dz-text strong { color:var(--green); }
+  #file-input { display:none; }
+  #img-preview { width:100%; display:none; border:1px solid var(--border); max-height:150px; object-fit:contain; background:black; margin-top:1rem; }
+  #gif-preview-wrap { display:none; margin-top:1rem; position:relative; }
+  #gif-preview-canvas { width:100%; max-height:150px; display:block; background:black; border:1px solid var(--border); }
+  #gif-badge { position:absolute; top:4px; right:4px; background:var(--green); color:var(--bg); font-family:'Fira Code',monospace; font-size:.6rem; padding:2px 6px; font-weight:700; }
+  #gif-info { display:none; font-family:'Fira Code',monospace; font-size:.65rem; color:var(--cyan-dim); margin-top:.4rem; text-align:center; }
+
+  .ctrl-row { display:flex; flex-direction:column; gap:.6rem; margin-bottom:.8rem; }
+  .ctrl-label { font-size:.7rem; color:var(--green-dim); font-family:'Fira Code',monospace; text-transform:uppercase; letter-spacing:.1em; }
+  input[type=range] { -webkit-appearance:none; width:100%; height:3px; background:var(--bg3); outline:none; border:1px solid var(--border); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:12px; height:12px; background:var(--green); cursor:none; border-radius:0; box-shadow:0 0 6px var(--green); }
+  input[type=range]::-webkit-slider-runnable-track { background:linear-gradient(90deg,var(--green-dark) var(--pct,0%),var(--bg3) var(--pct,0%)); }
+
+  .presets-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:.4rem; }
+  .preset-btn {
+    background:var(--bg3); border:1px solid var(--border); color:var(--green-dim);
+    font-family:'Fira Code',monospace; font-size:.7rem; padding:.35rem .5rem;
+    cursor:none; text-align:left; transition:all .15s; overflow:hidden; position:relative;
+  }
+  .preset-btn::before { content:''; position:absolute; inset:0; background:linear-gradient(45deg,transparent 40%,rgba(0,255,65,.04)); opacity:0; transition:.2s; }
+  .preset-btn:hover::before,.preset-btn.selected::before{opacity:1}
+  .preset-btn:hover,.preset-btn.selected { border-color:var(--green); color:var(--green); text-shadow:0 0 6px var(--green); }
+  .preset-btn.selected { background:rgba(0,255,65,.07); }
+  .preset-name { display:block; font-weight:600; }
+  .preset-sub { display:block; font-size:.6rem; color:var(--green-dim); margin-top:1px; }
+
+  .gen-btn {
+    width:100%; background:transparent; border:1px solid var(--green); color:var(--green);
+    font-family:'Orbitron',monospace; font-size:.8rem; letter-spacing:.2em; padding:.6rem;
+    cursor:none; transition:all .2s; position:relative; overflow:hidden; text-transform:uppercase;
+  }
+  .gen-btn::before { content:''; position:absolute; inset:0; background:var(--green); transform:translateX(-100%); transition:transform .3s ease; z-index:0; }
+  .gen-btn:hover::before { transform:translateX(0); }
+  .gen-btn span { position:relative; z-index:1; transition:color .3s; }
+  .gen-btn:hover span { color:var(--bg); }
+
+  /* ── GIF PLAYER: fixed height, no scroll jump ── */
+  #gif-frames-section { display:none; flex-direction:column; gap:1rem; }
+
+  #gif-player-wrap {
+    display:flex;
+    flex-direction:column;
+    gap:.5rem;
+  }
+  #gif-player-bar {
+    background:var(--bg2); border:1px solid var(--border);
+    padding:.6rem 1rem; display:flex; align-items:center; gap:.8rem; flex-wrap:wrap;
+  }
+  #gif-player-bar .gp-label { font-size:.7rem; color:var(--green-dim); font-family:'Fira Code',monospace; }
+  #frame-counter { font-family:'VT323',monospace; font-size:1.3rem; color:var(--cyan); min-width:80px; }
+  .gp-btn {
+    background:var(--bg3); border:1px solid var(--border); color:var(--green-dim);
+    font-family:'Fira Code',monospace; font-size:.7rem; padding:.3rem .7rem;
+    cursor:none; transition:all .15s; white-space:nowrap;
+  }
+  .gp-btn:hover,.gp-btn.active { border-color:var(--green); color:var(--green); }
+  #play-speed { font-size:.65rem; color:var(--green-dim); font-family:'Fira Code',monospace; min-width:60px; }
+
+  /* Fixed-size ASCII preview container — NO scroll jump */
+  #gif-ascii-preview-wrap {
+    background:var(--bg);
+    border:1px solid var(--border);
+    overflow:hidden;          /* ← clave: no crece ni salta */
+    position:relative;
+    /* height fijo se asigna por JS al primer frame */
+    min-height:120px;
+  }
+  #gif-ascii-preview {
+    font-family:'Share Tech Mono',monospace;
+    font-size:6px;
+    line-height:1.1;
+    white-space:pre;
+    padding:.4rem;
+    display:block;
+    /* Color mode se controla por JS */
+  }
+
+  /* COLOR MODE canvas overlay */
+  #gif-color-canvas {
+    display:none;
+    position:absolute;
+    top:0; left:0;
+    width:100%; height:100%;
+    image-rendering:pixelated;
+  }
+
+  /* Frames list (thumbnails) */
+  .frames-list {
+    display:flex; flex-direction:column; gap:.5rem;
+    max-height:35vh; overflow-y:auto; padding:.5rem;
+    background:var(--bg); border:1px solid var(--border);
+  }
+  .frame-item { border:1px solid var(--border); background:var(--panel); transition:border-color .15s; }
+  .frame-item.current-frame { border-color:var(--green); box-shadow:0 0 8px rgba(0,255,65,.2); }
+  .frame-header {
+    padding:.3rem .6rem; border-bottom:1px solid var(--border);
+    font-size:.65rem; color:var(--green-dim); font-family:'Fira Code',monospace;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .frame-header span { color:var(--cyan); }
+  .frame-ascii {
+    font-family:'Share Tech Mono',monospace; font-size:5px; line-height:1.1;
+    white-space:pre; color:var(--green); padding:.5rem;
+    overflow:hidden; max-height:120px; cursor:none;
+  }
+  .frame-copy-btn {
+    background:transparent; border:none; color:var(--green-dim);
+    font-family:'Fira Code',monospace; font-size:.6rem; cursor:none;
+    padding:.1rem .4rem; transition:color .15s;
+  }
+  .frame-copy-btn:hover { color:var(--green); }
+
+  /* Static output */
+  #ascii-output-wrap { position:relative; overflow:hidden; }
+  #ascii-output {
+    font-family:'Share Tech Mono',monospace; font-size:7px; line-height:1.15;
+    white-space:pre; color:var(--green); overflow:auto; max-height:75vh;
+    padding:.5rem; background:var(--bg); min-height:300px;
+    display:flex; align-items:center; justify-content:center; transition:all .3s;
+  }
+  #ascii-empty { text-align:center; color:var(--green-dim); font-size:.8rem; line-height:2; }
+
+  .output-actions {
+    display:flex; gap:.5rem; padding:.5rem; border-top:1px solid var(--border);
+    background:var(--bg2); flex-wrap:wrap;
+  }
+  .act-btn {
+    flex:1; min-width:80px; background:var(--bg3); border:1px solid var(--border); color:var(--green-dim);
+    font-family:'Fira Code',monospace; font-size:.7rem; padding:.35rem; cursor:none;
+    transition:all .15s; text-transform:uppercase; letter-spacing:.05em;
+  }
+  .act-btn:hover { border-color:var(--green); color:var(--green); }
+
+  /* Color mode toggle */
+  .color-toggle-btn {
+    background:var(--bg3); border:1px solid var(--border); color:var(--green-dim);
+    font-family:'Fira Code',monospace; font-size:.7rem; padding:.3rem .8rem;
+    cursor:none; transition:all .15s; white-space:nowrap;
+  }
+  .color-toggle-btn.color-on {
+    border-color:var(--amber); color:var(--amber);
+    box-shadow:0 0 8px rgba(255,170,0,.3);
+    text-shadow:0 0 6px var(--amber);
+  }
+
+  /* TEXT PANEL */
+  #text-input-area {
+    font-family:'Fira Code',monospace; font-size:1rem; background:var(--bg3);
+    border:1px solid var(--border); color:var(--green); padding:.8rem; width:100%;
+    resize:none; outline:none; caret-color:var(--green); transition:border-color .2s; height:80px;
+  }
+  #text-input-area:focus { border-color:var(--green); box-shadow:0 0 10px rgba(0,255,65,.1); }
+  .font-picker { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:.5rem; }
+  .font-card { border:1px solid var(--border); padding:.5rem; cursor:none; transition:all .15s; background:var(--bg3); text-align:center; }
+  .font-card:hover,.font-card.selected { border-color:var(--green); background:rgba(0,255,65,.05); }
+  .font-card.selected { box-shadow:0 0 10px rgba(0,255,65,.1); }
+  .font-card-name { font-size:.65rem; color:var(--green-dim); margin-bottom:.3rem; font-family:'Fira Code',monospace; }
+  .font-card-preview { font-size:1rem; color:var(--green); font-family:'VT323',monospace; }
+  .font-card.selected .font-card-name { color:var(--green); }
+  #text-output {
+    font-family:'Share Tech Mono',monospace; font-size:.75rem; line-height:1.2;
+    white-space:pre; color:var(--green); overflow:auto; padding:1rem;
+    background:var(--bg); border:1px solid var(--border); min-height:200px;
+    text-shadow:0 0 4px rgba(0,255,65,.4);
+  }
+  .text-size-row { display:flex; gap:.5rem; align-items:center; }
+  #txt-size-label { font-size:.7rem; color:var(--green-dim); font-family:'Fira Code',monospace; min-width:60px; }
+
+  /* ══════════════════════════════════════
+     SCRIPT EXPORT PANEL
+  ══════════════════════════════════════ */
+  #script-lang-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:.5rem; margin-bottom:1rem; }
+  .lang-btn {
+    background:var(--bg3); border:1px solid var(--border); color:var(--green-dim);
+    font-family:'Fira Code',monospace; font-size:.75rem; padding:.4rem .6rem;
+    cursor:none; transition:all .15s; text-align:center;
+  }
+  .lang-btn:hover,.lang-btn.selected { border-color:var(--cyan); color:var(--cyan); background:rgba(0,229,255,.04); }
+  .lang-btn .lang-icon { display:block; font-size:1.1rem; margin-bottom:2px; }
+  .lang-btn .lang-name { display:block; font-size:.65rem; }
+  #script-output {
+    font-family:'Fira Code',monospace; font-size:.72rem; line-height:1.5;
+    white-space:pre; color:var(--cyan); overflow:auto; max-height:60vh;
+    padding:1rem; background:var(--bg); border:1px solid var(--border);
+  }
+  #script-mode-select {
+    background:var(--bg3); border:1px solid var(--border); color:var(--green);
+    font-family:'Fira Code',monospace; font-size:.75rem; padding:.4rem .7rem;
+    cursor:none; outline:none;
+  }
+  #script-mode-select option { background:var(--bg3); }
+  .script-option-row {
+    display:flex; align-items:center; gap:.8rem; flex-wrap:wrap;
+    padding:.6rem; background:var(--bg2); border:1px solid var(--border); margin-bottom:.5rem;
+  }
+  .script-opt-label { font-size:.7rem; color:var(--green-dim); font-family:'Fira Code',monospace; }
+
+  /* MATRIX */
+  #matrix-canvas { position:fixed; top:0; left:0; width:100%; height:100%; opacity:.04; pointer-events:none; z-index:0; }
+
+  ::-webkit-scrollbar { width:4px; height:4px; }
+  ::-webkit-scrollbar-track { background:var(--bg); }
+  ::-webkit-scrollbar-thumb { background:var(--green-dark); }
+  ::-webkit-scrollbar-thumb:hover { background:var(--green-dim); }
+
+  #loading-overlay {
+    display:none; position:absolute; inset:0; background:rgba(1,13,3,.85); z-index:50;
+    flex-direction:column; align-items:center; justify-content:center; gap:1rem;
+    font-family:'Fira Code',monospace; font-size:.8rem; color:var(--green);
+  }
+  #loading-overlay.show { display:flex; }
+  .loader-bar { width:200px; height:2px; background:var(--bg3); border:1px solid var(--border); }
+  .loader-fill { height:100%; background:var(--green); animation:load 1.5s ease infinite; box-shadow:0 0 10px var(--green); }
+  .loader-progress { width:200px; height:2px; background:var(--bg3); border:1px solid var(--border); margin-top:.5rem; }
+  .loader-progress-fill { height:100%; background:var(--cyan); width:0%; transition:width .1s; box-shadow:0 0 10px var(--cyan); }
+  @keyframes load { 0%{width:0%} 100%{width:100%} }
+
+  #notif {
+    position:fixed; bottom:1.5rem; right:1.5rem; background:var(--bg2); border:1px solid var(--green);
+    color:var(--green); font-family:'Fira Code',monospace; font-size:.75rem; padding:.6rem 1rem;
+    z-index:800; opacity:0; transform:translateY(20px); transition:all .3s; pointer-events:none;
+  }
+  #notif.show { opacity:1; transform:translateY(0); }
+
+  .range-val { font-family:'VT323',monospace; font-size:1.1rem; color:var(--cyan); }
+  .section-label {
+    font-family:'Fira Code',monospace; font-size:.65rem; color:var(--green-dim);
+    letter-spacing:.2em; text-transform:uppercase; margin-bottom:.5rem;
+    display:flex; align-items:center; gap:.5rem;
+  }
+  .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+  .toggle-row { display:flex; align-items:center; gap:.5rem; cursor:none; }
+  .toggle-row input[type=checkbox] {
+    appearance:none; width:14px; height:14px; border:1px solid var(--green-dim);
+    background:var(--bg3); cursor:none; position:relative; flex-shrink:0;
+  }
+  .toggle-row input[type=checkbox]:checked { background:var(--green); box-shadow:0 0 6px var(--green); }
+  .toggle-row input[type=checkbox]:checked::after {
+    content:'✓'; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    color:var(--bg); font-size:10px; line-height:1;
+  }
+  .toggle-label { font-size:.7rem; color:var(--green-dim); font-family:'Fira Code',monospace; }
+
+  @media(max-width:700px){ #topbar{padding:.5rem 1rem;} .panel{padding:1rem;} }
+</style>
+</head>
+<body>
+
+<canvas id="matrix-canvas"></canvas>
+<div id="cursor"></div>
+<div id="cursor-trail"></div>
+<div id="notif"></div>
+
+<!-- INTRO -->
+<div id="intro">
+  <div id="intro-logo">ASCII//FORGE</div>
+  <pre id="boot-log" aria-hidden="true"></pre>
+  <div id="boot-bar-wrap"><div id="boot-bar"></div></div>
+  <button id="enter-btn" onclick="enterApp()">[ INICIAR SISTEMA ]</button>
+</div>
+
+<!-- APP -->
+<div id="app" hidden>
+  <div id="topbar">
+    <div id="topbar-logo">ASCII<span>//</span>FORGE <span style="font-size:.6rem;opacity:.5;">v3.0.0</span></div>
+    <div class="topbar-status">
+      <span><span class="status-dot"></span>SISTEMA OK</span>
+      <span><span class="status-dot" style="background:var(--cyan);box-shadow:0 0 6px var(--cyan)"></span>MOTOR ACTIVO</span>
+      <span><span class="status-dot" style="animation-delay:.6s"></span>GIF READY</span>
+    </div>
+    <div id="clock">00:00:00</div>
+  </div>
+
+  <div id="tabs">
+    <button class="tab active" onclick="switchTab(0)">01_IMAGE_TO_ASCII</button>
+    <button class="tab" onclick="switchTab(1)">02_TEXT_GENERATOR</button>
+    <button class="tab" onclick="switchTab(2)">03_SCRIPT_EXPORT</button>
+  </div>
+
+  <!-- PANEL 1: IMAGE -->
+  <div class="panel active" id="p0">
+    <div class="two-col">
+      <!-- LEFT CONTROLS -->
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+        <div class="terminal-box">
+          <div class="t-header">
+            <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+            <span>INPUT_STREAM :: IMAGEN / GIF</span>
+          </div>
+          <div class="t-body">
+            <div id="dropzone" onclick="document.getElementById('file-input').click()"
+                 ondragleave="onDragLeave(event)" ondrop="onDrop(event)" ondragover="onDragOver(event)">
+              <div class="dz-icon">⬡</div>
+              <div class="dz-text">
+                <strong>ARRASTRAR / SOLTAR</strong><br>
+                o click para seleccionar<br>
+                <span style="font-size:.65rem;color:var(--green-dark)">PNG · JPG · WEBP · <span style="color:var(--cyan)">GIF ✦</span></span>
+              </div>
+            </div>
+            <img id="img-preview" alt="preview">
+            <div id="gif-preview-wrap">
+              <canvas id="gif-preview-canvas"></canvas>
+              <div id="gif-badge">GIF ANIMADO</div>
+            </div>
+            <div id="gif-info"></div>
+            <input type="file" id="file-input" accept="image/*" onchange="onFileChange(event)">
+          </div>
+        </div>
+
+        <div class="terminal-box">
+          <div class="t-header">
+            <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+            <span>CONFIG :: PARÁMETROS</span>
+          </div>
+          <div class="t-body" style="display:flex;flex-direction:column;gap:.8rem;">
+            <div class="section-label">RESOLUCIÓN</div>
+            <div class="ctrl-row">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span class="ctrl-label">ANCHO (COLS)</span>
+                <span class="range-val" id="lbl-cols">80</span>
+              </div>
+              <input type="range" min="40" max="200" value="80" id="r-cols" oninput="updateRange(this,'lbl-cols')">
+            </div>
+            <div class="section-label">CONTRASTE / BRILLO</div>
+            <div class="ctrl-row">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span class="ctrl-label">CONTRASTE</span><span class="range-val" id="lbl-contrast">1.0</span>
+              </div>
+              <input type="range" min="0.2" max="3" step="0.1" value="1" id="r-contrast" oninput="updateRange(this,'lbl-contrast',1)">
+            </div>
+            <div class="ctrl-row">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span class="ctrl-label">BRILLO</span><span class="range-val" id="lbl-bright">0</span>
+              </div>
+              <input type="range" min="-80" max="80" value="0" id="r-bright" oninput="updateRange(this,'lbl-bright')">
+            </div>
+            <div class="section-label">OPCIONES</div>
+            <label class="toggle-row"><input type="checkbox" id="chk-invert"> <span class="toggle-label">INVERTIR LUMINOSIDAD</span></label>
+            <label class="toggle-row"><input type="checkbox" id="chk-edges"> <span class="toggle-label">MODO BORDES (EDGE DETECT)</span></label>
+            <label class="toggle-row"><input type="checkbox" id="chk-dither"> <span class="toggle-label">DITHERING FLOYD-STEINBERG</span></label>
+          </div>
+        </div>
+
+        <div class="terminal-box">
+          <div class="t-header">
+            <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+            <span>PRESETS :: ESTILOS</span>
+          </div>
+          <div class="t-body"><div class="presets-grid" id="preset-grid"></div></div>
+        </div>
+
+        <button class="gen-btn" onclick="generateAscii()"><span>⚡ PROCESAR IMAGEN</span></button>
+      </div>
+
+      <!-- RIGHT OUTPUT -->
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+        <!-- Static output -->
+        <div class="terminal-box" id="static-output-box" style="display:flex;flex-direction:column;">
+          <div class="t-header">
+            <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+            <span id="output-title">OUTPUT_STREAM :: AGUARDANDO SEÑAL</span>
+          </div>
+          <div id="ascii-output-wrap" style="flex:1;display:flex;flex-direction:column;position:relative;">
+            <div id="loading-overlay">
+              <span>PROCESANDO...</span>
+              <div class="loader-bar"><div class="loader-fill"></div></div>
+              <div class="loader-progress"><div class="loader-progress-fill" id="progress-fill"></div></div>
+              <span id="load-status" style="font-size:.65rem;color:var(--green-dim)">analizando píxeles</span>
+            </div>
+            <div id="ascii-output">
+              <div id="ascii-empty">░░ SIN SEÑAL ░░<br><span style="font-size:.7rem">Cargá una imagen o GIF y presioná PROCESAR</span></div>
+            </div>
+            <div class="output-actions">
+              <button class="act-btn" onclick="copyAscii()">[ COPIAR ]</button>
+              <button class="act-btn" onclick="downloadAscii()">[ DESCARGAR TXT ]</button>
+              <button class="act-btn" onclick="downloadPng()">[ GUARDAR PNG ]</button>
+              <button class="act-btn" onclick="changeOutputSize(-1)">[ - ]</button>
+              <button class="act-btn" onclick="changeOutputSize(1)">[ + ]</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- GIF frames output -->
+        <div id="gif-frames-section">
+          <div class="terminal-box">
+            <div class="t-header">
+              <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+              <span id="gif-output-title">GIF_STREAM :: FRAMES ASCII</span>
+            </div>
+            <div id="gif-player-wrap">
+              <!-- Playback controls -->
+              <div id="gif-player-bar">
+                <span class="gp-label">FRAME:</span>
+                <span id="frame-counter">01 / 01</span>
+                <button class="gp-btn" onclick="prevFrame()">[ ◀ ]</button>
+                <button class="gp-btn active" id="play-btn" onclick="togglePlay()">[ ▶ PLAY ]</button>
+                <button class="gp-btn" onclick="nextFrame()">[ ▶ ]</button>
+                <span id="play-speed">VEL: 1x</span>
+                <button class="gp-btn" onclick="cycleSpeed()">[ SPEED ]</button>
+                <!-- Color toggle -->
+                <button class="color-toggle-btn" id="color-toggle-btn" onclick="toggleColorMode()">[ 🎨 COLOR: OFF ]</button>
+                <button class="gp-btn" onclick="copyAllFrames()">[ COPIAR TODO ]</button>
+                <button class="gp-btn" onclick="downloadAllFrames()">[ DESCARGAR TXT ]</button>
+              </div>
+
+              <!-- Fixed-height preview: no jump, no scroll -->
+              <div id="gif-ascii-preview-wrap">
+                <!-- ASCII text layer -->
+                <div id="gif-ascii-preview"></div>
+                <!-- Color canvas overlay (shown when color mode ON) -->
+                <canvas id="gif-color-canvas"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Frame list -->
+          <div class="terminal-box">
+            <div class="t-header">
+              <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+              <span>TODOS LOS FRAMES :: SCROLL PARA VER</span>
+            </div>
+            <div class="t-body" style="padding:.5rem;">
+              <div class="frames-list" id="frames-list"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL 2: TEXT -->
+  <div class="panel" id="p1">
+    <div class="terminal-box">
+      <div class="t-header">
+        <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+        <span>INPUT :: TEXTO</span>
+      </div>
+      <div class="t-body">
+        <textarea id="text-input-area" placeholder="ESCRIBE TU TEXTO AQUI..." maxlength="30" oninput="renderText()"></textarea>
+        <div style="margin-top:.5rem;font-size:.65rem;color:var(--green-dim);font-family:'Fira Code',monospace;">
+          MAX 30 CHARS &nbsp;·&nbsp; <span id="char-count">0</span>/30
+        </div>
+      </div>
+    </div>
+    <div class="section-label" style="padding:0 0 .3rem">FUENTE ASCII</div>
+    <div class="font-picker" id="font-picker"></div>
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center;">
+      <div class="text-size-row">
+        <span id="txt-size-label">TAMAÑO: 10px</span>
+        <input type="range" min="4" max="20" value="10" id="txt-size" style="width:120px" oninput="updateTextSize(this)">
+      </div>
+    </div>
+    <div class="terminal-box" style="flex:1;">
+      <div class="t-header">
+        <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+        <span>OUTPUT :: TEXT ASCII</span>
+      </div>
+      <div class="t-body" style="overflow:auto;">
+        <div id="text-output" style="min-height:250px;"><span style="color:var(--green-dim)">// escribe algo arriba...</span></div>
+      </div>
+      <div class="output-actions">
+        <button class="act-btn" onclick="copyText()">[ COPIAR ]</button>
+        <button class="act-btn" onclick="downloadText()">[ DESCARGAR TXT ]</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL 3: SCRIPT EXPORT -->
+  <div class="panel" id="p2">
+    <div class="terminal-box">
+      <div class="t-header">
+        <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+        <span>SCRIPT_EXPORT :: CONVERTIDOR EN MÚLTIPLES LENGUAJES</span>
+      </div>
+      <div class="t-body" style="display:flex;flex-direction:column;gap:1rem;">
+        <div style="font-size:.75rem;color:var(--green-dim);font-family:'Fira Code',monospace;line-height:1.7;">
+          Generá un script listo para usar que convierte <span style="color:var(--green)">imágenes o GIFs</span> a ASCII
+          en tu lenguaje preferido. Pegalo, instalá las dependencias y usalo en tus propios proyectos.<br>
+          <span style="color:var(--cyan)">También incluye modo aleatorio (random batch)</span> para procesar carpetas completas.
+        </div>
+
+        <div class="script-option-row">
+          <span class="script-opt-label">MODO:</span>
+          <select id="script-mode-select" onchange="renderScript()">
+            <option value="basic">BÁSICO — imagen / GIF → ASCII</option>
+            <option value="random">RANDOM BATCH — carpeta aleatoria</option>
+            <option value="watch">WATCH MODE — observa carpeta en tiempo real</option>
+            <option value="server">SERVER API — endpoint HTTP</option>
+          </select>
+          <span class="script-opt-label" style="margin-left:auto;">LENGUAJE:</span>
+        </div>
+
+        <div class="section-label">SELECCIONÁ EL LENGUAJE</div>
+        <div id="script-lang-grid"></div>
+
+        <div class="terminal-box" style="flex:1;">
+          <div class="t-header">
+            <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+            <span id="script-title">SCRIPT :: PYTHON · BÁSICO</span>
+          </div>
+          <pre id="script-output">// Seleccioná un lenguaje arriba para ver el script</pre>
+          <div class="output-actions">
+            <button class="act-btn" onclick="copyScript()">[ COPIAR SCRIPT ]</button>
+            <button class="act-btn" onclick="downloadScript()">[ DESCARGAR ]</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- GIF decoder (omggif minimal) -->
+<script>
+var GifReader=(function(){function GifReader(buf){this.buf=buf;this.parseHeader();}GifReader.prototype={parseHeader:function(){var buf=this.buf;if(buf[0]!==0x47||buf[1]!==0x49||buf[2]!==0x46)throw new Error("Invalid GIF signature");this.width=buf[6]|buf[7]<<8;this.height=buf[8]|buf[9]<<8;var packed=buf[10];this.globalColorTableFlag=(packed>>7)&1;var gctSize=packed&7;this.bgColorIndex=buf[11];this.pos=13;if(this.globalColorTableFlag){this.globalColorTable=[];for(var i=0;i<(2<<gctSize);i++){this.globalColorTable.push([buf[this.pos],buf[this.pos+1],buf[this.pos+2]]);this.pos+=3;}}this.frames=[];this.disposalMethod=0;this.delayTime=100;this.transparentColorFlag=0;this.transparentColorIndex=-1;this.parseBlocks();},parseBlocks:function(){var buf=this.buf;while(this.pos<buf.length){var block=buf[this.pos++];if(block===0x3B)break;if(block===0x2C){this.parseImageDescriptor();}else if(block===0x21){this.parseExtension();}else{break;}}},parseExtension:function(){var buf=this.buf;var label=buf[this.pos++];if(label===0xF9){this.pos++;var packed=buf[this.pos++];this.disposalMethod=(packed>>2)&7;this.transparentColorFlag=packed&1;this.delayTime=(buf[this.pos]|buf[this.pos+1]<<8)*10;this.pos+=2;this.transparentColorIndex=buf[this.pos++];this.pos++;}else{this.skipSubBlocks();}},skipSubBlocks:function(){var buf=this.buf;var size;while((size=buf[this.pos++])!==0){this.pos+=size;}},parseImageDescriptor:function(){var buf=this.buf;var frame={};frame.x=buf[this.pos]|buf[this.pos+1]<<8;this.pos+=2;frame.y=buf[this.pos]|buf[this.pos+1]<<8;this.pos+=2;frame.width=buf[this.pos]|buf[this.pos+1]<<8;this.pos+=2;frame.height=buf[this.pos]|buf[this.pos+1]<<8;this.pos+=2;var packed=buf[this.pos++];var localColorTableFlag=(packed>>7)&1;var lctSize=packed&7;var colorTable=this.globalColorTable;if(localColorTableFlag){colorTable=[];for(var i=0;i<(2<<lctSize);i++){colorTable.push([buf[this.pos],buf[this.pos+1],buf[this.pos+2]]);this.pos+=3;}}frame.colorTable=colorTable;frame.transparentIndex=this.transparentColorFlag?this.transparentColorIndex:-1;frame.delay=this.delayTime||100;frame.disposalMethod=this.disposalMethod||0;this.pos++;frame.lzwMinCodeSize=buf[this.pos-1];var dataLen=0;var scanPos=this.pos;while(buf[scanPos]!==0&&scanPos<buf.length){dataLen+=buf[scanPos];scanPos+=buf[scanPos]+1;}var lzwData=new Uint8Array(dataLen);var dp=0;while(buf[this.pos]!==0&&this.pos<buf.length){var sz=buf[this.pos++];lzwData.set(buf.subarray(this.pos,this.pos+sz),dp);dp+=sz;this.pos+=sz;}this.pos++;frame.lzwData=lzwData;frame.pixels=this.decodeLZW(frame);this.frames.push(frame);},decodeLZW:function(frame){var minCodeSize=frame.lzwMinCodeSize;var data=frame.lzwData;var pixels=new Uint8Array(frame.width*frame.height);var clearCode=1<<minCodeSize;var eofCode=clearCode+1;var codeSize=minCodeSize+1;var codeMask=(1<<codeSize)-1;var dict=[];function initDict(){dict=[];for(var i=0;i<clearCode+2;i++)dict[i]=[i<clearCode?i:-1];codeSize=minCodeSize+1;codeMask=(1<<codeSize)-1;}initDict();var bitBuf=0,bitCount=0,bytePos=0;function readCode(){while(bitCount<codeSize&&bytePos<data.length){bitBuf|=data[bytePos++]<<bitCount;bitCount+=8;}var code=bitBuf&codeMask;bitBuf>>=codeSize;bitCount-=codeSize;return code;}var pixelPos=0;var prev=null;while(true){var code=readCode();if(code===eofCode||bytePos>data.length+2)break;if(code===clearCode){initDict();prev=null;continue;}var entry;if(code<dict.length){entry=dict[code];}else if(prev!==null&&code===dict.length){entry=prev.concat(prev[0]);}else{break;}for(var i=0;i<entry.length;i++){if(pixelPos<pixels.length)pixels[pixelPos++]=entry[i];}if(prev!==null&&dict.length<4096){dict.push(prev.concat(entry[0]));}if(dict.length>=(1<<codeSize)&&codeSize<12){codeSize++;codeMask=(1<<codeSize)-1;}prev=entry;}return pixels;}};return GifReader;})();
+</script>
+
+<script>
+// ═══════════════════════════════════════
+// CURSOR
+// ═══════════════════════════════════════
+const cur = document.getElementById('cursor');
+const trail = document.getElementById('cursor-trail');
+document.addEventListener('mousemove', e => {
+  cur.style.left = e.clientX + 'px'; cur.style.top = e.clientY + 'px';
+  setTimeout(() => { trail.style.left = e.clientX + 'px'; trail.style.top = e.clientY + 'px'; }, 80);
+});
+document.addEventListener('mousedown', () => { cur.style.width='30px'; cur.style.height='30px'; });
+document.addEventListener('mouseup',   () => { cur.style.width='20px'; cur.style.height='20px'; });
+
+// ═══════════════════════════════════════
+// MATRIX RAIN
+// ═══════════════════════════════════════
+(function(){
+  const canvas = document.getElementById('matrix-canvas');
+  const ctx = canvas.getContext('2d');
+  let cols, drops;
+  function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; cols=Math.floor(canvas.width/14); drops=Array(cols).fill(1); }
+  resize(); window.addEventListener('resize', resize);
+  const chars='アイウエオカキクケコ01アBCDEF<>{}[]|/\\';
+  setInterval(()=>{
+    ctx.fillStyle='rgba(1,13,3,0.05)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#00ff41'; ctx.font='12px Share Tech Mono';
+    drops.forEach((y,i)=>{ ctx.fillText(chars[Math.floor(Math.random()*chars.length)],i*14,y*14); if(y*14>canvas.height&&Math.random()>.975)drops[i]=0; drops[i]++; });
+  }, 50);
+})();
+
+// ═══════════════════════════════════════
+// INTRO
+// ═══════════════════════════════════════
+const bootLines=[
+  '[OK] Inicializando núcleo...',
+  '[OK] Cargando driver de imagen...',
+  '[OK] Módulo ASCII::Engine v3.0 listo',
+  '[OK] Soporte GIF multi-frame activado',
+  '[OK] Modo COLOR original activado',
+  '[OK] Decodificador LZW listo',
+  '[OK] Script Export :: 10 lenguajes listos',
+  '[OK] Modo Random Batch cargado',
+  '[  ] Verificando integridad del sistema...',
+  '[OK] Sistema listo. Bienvenido.',
+];
+async function runBoot(){
+  const log=document.getElementById('boot-log');
+  const bar=document.getElementById('boot-bar');
+  for(let i=0;i<bootLines.length;i++){
+    const div=document.createElement('div');
+    div.className='boot-line';
+    div.style.animationDelay=i*0.22+'s';
+    div.style.animationDuration='0.4s';
+    div.textContent=bootLines[i];
+    log.appendChild(div);
+    bar.style.width=((i+1)/bootLines.length*100)+'%';
+    await delay(240);
+    if(div.textContent.includes('Verificando')){await delay(600);div.textContent='[OK] Verificando integridad del sistema...';}
+  }
+  await delay(400);
+  document.getElementById('enter-btn').style.display='block';
+}
+runBoot();
+function delay(ms){return new Promise(r=>setTimeout(r,ms));}
+function enterApp(){ document.getElementById('intro').classList.add('gone'); document.getElementById('app').hidden=false; initClock(); }
+function initClock(){ setInterval(()=>{ const n=new Date(); document.getElementById('clock').textContent=[n.getHours(),n.getMinutes(),n.getSeconds()].map(x=>x.toString().padStart(2,'0')).join(':'); },1000); }
+
+// ═══════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════
+function switchTab(idx){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
+  document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',i===idx));
+}
+
+// ═══════════════════════════════════════
+// RANGES
+// ═══════════════════════════════════════
+function updateRange(el,lblId,decimals=0){
+  document.getElementById(lblId).textContent=parseFloat(el.value).toFixed(decimals);
+  const pct=(el.value-el.min)/(el.max-el.min)*100;
+  el.style.setProperty('--pct',pct+'%');
+}
+document.querySelectorAll('input[type=range]').forEach(r=>{
+  const lblId=r.id.replace('r-','lbl-');
+  if(document.getElementById(lblId)) updateRange(r,lblId,r.step&&r.step.includes('.')?1:0);
+});
+
+// ═══════════════════════════════════════
+// DROP ZONE
+// ═══════════════════════════════════════
+let loadedImage=null, loadedGifFrames=null, isGif=false;
+let gifPreviewInterval=null, gifPreviewFrame=0;
+
+function onDragOver(e){e.preventDefault();document.getElementById('dropzone').classList.add('drag');}
+function onDragLeave(e){document.getElementById('dropzone').classList.remove('drag');}
+function onDrop(e){e.preventDefault();document.getElementById('dropzone').classList.remove('drag');const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))loadFile(f);}
+function onFileChange(e){if(e.target.files[0])loadFile(e.target.files[0]);}
+
+function loadFile(file){
+  stopGifPreview();
+  document.getElementById('img-preview').style.display='none';
+  document.getElementById('gif-preview-wrap').style.display='none';
+  document.getElementById('gif-info').style.display='none';
+  isGif=false; loadedGifFrames=null; loadedImage=null;
+  if(file.type==='image/gif') loadGif(file); else loadStaticImage(file);
+}
+
+function loadStaticImage(file){
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{ loadedImage=img; const p=document.getElementById('img-preview'); p.src=ev.target.result; p.style.display='block'; showNotif('Imagen cargada: '+file.name); };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function loadGif(file){
+  showNotif('Decodificando GIF...');
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const buffer=new Uint8Array(ev.target.result);
+      const gif=new GifReader(buffer);
+      const frames=decodeGifFrames(gif);
+      loadedGifFrames=frames; isGif=true;
+      const wrap=document.getElementById('gif-preview-wrap');
+      const pc=document.getElementById('gif-preview-canvas');
+      wrap.style.display='block'; pc.width=gif.width; pc.height=gif.height;
+      const info=document.getElementById('gif-info');
+      info.style.display='block';
+      info.textContent=`${frames.length} FRAMES · ${gif.width}×${gif.height}px · GIF ANIMADO`;
+      startGifPreview(frames,pc);
+      showNotif(`GIF cargado: ${frames.length} frames`);
+    }catch(e){ showNotif('Error GIF: '+e.message); console.error(e); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function decodeGifFrames(gif){
+  const w=gif.width,h=gif.height,frames=[];
+  const comp=document.createElement('canvas'); comp.width=w; comp.height=h;
+  const compCtx=comp.getContext('2d');
+  const prev=document.createElement('canvas'); prev.width=w; prev.height=h;
+  for(let fi=0;fi<gif.frames.length;fi++){
+    const f=gif.frames[fi],disposal=f.disposalMethod;
+    if(disposal===3){const pc=prev.getContext('2d');pc.clearRect(0,0,w,h);pc.drawImage(comp,0,0);}
+    const imgData=compCtx.createImageData(w,h),d=imgData.data;
+    const existing=compCtx.getImageData(0,0,w,h);
+    for(let i=0;i<d.length;i++)d[i]=existing.data[i];
+    for(let y=0;y<f.height;y++){
+      for(let x=0;x<f.width;x++){
+        const pi=y*f.width+x,px=f.pixels[pi];
+        if(px===f.transparentIndex)continue;
+        const col=f.colorTable[px]||[0,0,0];
+        const idx=((f.y+y)*w+(f.x+x))*4;
+        d[idx]=col[0];d[idx+1]=col[1];d[idx+2]=col[2];d[idx+3]=255;
+      }
+    }
+    compCtx.putImageData(imgData,0,0);
+    const snap=document.createElement('canvas');snap.width=w;snap.height=h;
+    snap.getContext('2d').drawImage(comp,0,0);
+    frames.push({canvas:snap,delay:f.delay||100});
+    if(disposal===2){compCtx.clearRect(f.x,f.y,f.width,f.height);}
+    else if(disposal===3){compCtx.clearRect(0,0,w,h);compCtx.drawImage(prev,0,0);}
+  }
+  return frames;
+}
+
+function startGifPreview(frames,pc){
+  stopGifPreview(); gifPreviewFrame=0;
+  const ctx=pc.getContext('2d');
+  function showFrame(){
+    const f=frames[gifPreviewFrame];
+    ctx.clearRect(0,0,pc.width,pc.height);
+    ctx.drawImage(f.canvas,0,0,pc.width,pc.height);
+    gifPreviewFrame=(gifPreviewFrame+1)%frames.length;
+    gifPreviewInterval=setTimeout(showFrame,f.delay);
+  }
+  showFrame();
+}
+function stopGifPreview(){ if(gifPreviewInterval){clearTimeout(gifPreviewInterval);gifPreviewInterval=null;} }
+
+// ═══════════════════════════════════════
+// PRESETS
+// ═══════════════════════════════════════
+const PRESETS=[
+  {name:'CLASSIC',sub:'bloques densos',chars:'@#S%?*+;:,.  ',inv:false,edge:false,dith:false},
+  {name:'MINIMAL',sub:'puntos finos',chars:'█▓▒░ ',inv:false,edge:false,dith:false},
+  {name:'MATRIX',sub:'binario estilo',chars:'10100101 .:;=+#@',inv:false,edge:false,dith:false},
+  {name:'HACKER',sub:'símbolos técnicos',chars:'#@$%^&*!|/<>{}[]\\~=-+_:;.,  ',inv:false,edge:false,dith:false},
+  {name:'SMOOTH',sub:'gradiente suave',chars:'$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^\'. ',inv:false,edge:false,dith:true},
+  {name:'EDGE',sub:'detección de bordes',chars:'|-/\\+*#@. ',inv:false,edge:true,dith:false},
+  {name:'BRAILLE',sub:'puntos braille',chars:'⠿⠾⠼⠸⠰⠠⠀',inv:false,edge:false,dith:false},
+  {name:'BLOCKS',sub:'bloques unicode',chars:'█▉▊▋▌▍▎▏ ',inv:false,edge:false,dith:false},
+  {name:'INVERTED',sub:'fondo oscuro',chars:'@#S%?*+;:,. ',inv:true,edge:false,dith:false},
+  {name:'SHADE',sub:'sombreado suave',chars:'Ñ@#W$9876543210?!abc;:+=-,._ ',inv:false,edge:false,dith:true},
+  {name:'SYMBOLS',sub:'solo símbolos',chars:'♠♣♥♦○●◇◆□■△▲▽▼',inv:false,edge:false,dith:false},
+  {name:'MICRO',sub:'alta densidad',chars:'⣿⣾⣼⣸⣰⣠⣀⠀',inv:false,edge:false,dith:false},
+];
+let selectedPreset=0;
+function initPresets(){
+  const grid=document.getElementById('preset-grid');
+  PRESETS.forEach((p,i)=>{
+    const btn=document.createElement('button');
+    btn.className='preset-btn'+(i===0?' selected':'');
+    btn.innerHTML=`<span class="preset-name">${p.name}</span><span class="preset-sub">${p.sub}</span>`;
+    btn.onclick=()=>{
+      document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected'); selectedPreset=i;
+      const pr=PRESETS[i];
+      document.getElementById('chk-invert').checked=pr.inv;
+      document.getElementById('chk-edges').checked=pr.edge;
+      document.getElementById('chk-dither').checked=pr.dith;
+    };
+    grid.appendChild(btn);
+  });
+}
+initPresets();
+
+// ═══════════════════════════════════════
+// ASCII ENGINE
+// ═══════════════════════════════════════
+let asciiColor='#00ff41';
+
+function generateAscii(){
+  if(!loadedImage&&!loadedGifFrames){showNotif('¡Cargá una imagen primero!');return;}
+  const lo=document.getElementById('loading-overlay');
+  lo.classList.add('show');
+  if(isGif&&loadedGifFrames) generateGifAscii();
+  else{
+    const statuses=['analizando píxeles','calculando luminosidad','aplicando dithering','mapeando caracteres','renderizando'];
+    let si=0;
+    const sv=setInterval(()=>{ document.getElementById('load-status').textContent=statuses[si++%statuses.length]; },300);
+    setTimeout(()=>{
+      try{
+        const result=doConvertCanvas(loadedImage);
+        const out=document.getElementById('ascii-output');
+        out.innerHTML=''; out.style.color=asciiColor;
+        out.textContent=result.lines.join('\n');
+        document.getElementById('output-title').textContent=`OUTPUT :: ${result.lines[0].length}×${result.lines.length} chars`;
+        document.getElementById('static-output-box').style.display='flex';
+        document.getElementById('gif-frames-section').style.display='none';
+      }catch(e){showNotif('Error: '+e.message);}
+      clearInterval(sv); lo.classList.remove('show');
+    },600);
+  }
+}
+
+// ── GIF PLAYBACK STATE ──
+let gifAsciiFrames=[], gifPlayFrame=0, gifPlayTimeout=null, gifPlaying=false;
+let gifSpeedMult=1, gifSpeedIdx=1;
+let colorModeOn=false;
+const speedOptions=[0.5,1,2,4];
+
+async function generateGifAscii(){
+  const frames=loadedGifFrames;
+  document.getElementById('load-status').textContent='procesando frames GIF...';
+  document.getElementById('progress-fill').style.width='0%';
+  const asciiFrames=[];
+  for(let fi=0;fi<frames.length;fi++){
+    await new Promise(r=>setTimeout(r,10));
+    document.getElementById('progress-fill').style.width=((fi+1)/frames.length*100)+'%';
+    document.getElementById('load-status').textContent=`frame ${fi+1} / ${frames.length}`;
+    try{ asciiFrames.push({lines:doConvertCanvas(frames[fi].canvas).lines,delay:frames[fi].delay,canvas:frames[fi].canvas}); }
+    catch(e){console.error('Frame err:',e);}
+  }
+  document.getElementById('loading-overlay').classList.remove('show');
+  if(!asciiFrames.length){showNotif('Error procesando frames');return;}
+
+  document.getElementById('static-output-box').style.display='none';
+  const gifSection=document.getElementById('gif-frames-section');
+  gifSection.style.display='flex';
+  document.getElementById('gif-output-title').textContent=`GIF_STREAM :: ${asciiFrames.length} FRAMES`;
+
+  // Build frame list (thumbnails)
+  const list=document.getElementById('frames-list');
+  list.innerHTML='';
+  asciiFrames.forEach((f,i)=>{
+    const item=document.createElement('div');
+    item.className='frame-item'+(i===0?' current-frame':'');
+    item.id='frame-item-'+i;
+    item.innerHTML=`
+      <div class="frame-header">
+        <span>FRAME_<span>${String(i+1).padStart(3,'0')}</span></span>
+        <span style="color:var(--green-dim)">${f.lines[0]?.length||0}×${f.lines.length} · ${f.delay}ms</span>
+        <button class="frame-copy-btn" onclick="copySingleFrame(${i})">[ COPIAR ]</button>
+      </div>
+      <div class="frame-ascii" id="frame-ascii-${i}">${escapeHtml(f.lines.join('\n'))}</div>
+    `;
+    list.appendChild(item);
+  });
+
+  // Set fixed height on preview container (based on first frame rendered)
+  initGifPlayback(asciiFrames);
+
+  // Compute and fix the preview height so it never jumps
+  requestAnimationFrame(()=>{
+    const previewEl=document.getElementById('gif-ascii-preview');
+    const wrap=document.getElementById('gif-ascii-preview-wrap');
+    // Measure rendered height of current content
+    const h=previewEl.scrollHeight||200;
+    wrap.style.height=Math.max(h,80)+'px';
+
+    // Setup color canvas size matching the GIF original
+    const cc=document.getElementById('gif-color-canvas');
+    cc.width=frames[0].canvas.width;
+    cc.height=frames[0].canvas.height;
+  });
+
+  showNotif(`GIF procesado: ${asciiFrames.length} frames listos`);
+}
+
+function initGifPlayback(frames){
+  gifAsciiFrames=frames; gifPlayFrame=0; gifPlaying=false;
+  gifSpeedMult=1; gifSpeedIdx=1; colorModeOn=false;
+  updateColorToggleBtn();
+  updateFrameDisplay(0);
+}
+
+function updateFrameDisplay(idx){
+  gifPlayFrame=idx;
+  const f=gifAsciiFrames[idx];
+  if(!f)return;
+
+  // Update ASCII text
+  const preview=document.getElementById('gif-ascii-preview');
+  preview.textContent=f.lines.join('\n');
+
+  // If color mode: draw original pixels on canvas overlay
+  if(colorModeOn&&f.canvas){
+    const cc=document.getElementById('gif-color-canvas');
+    cc.getContext('2d').drawImage(f.canvas,0,0,cc.width,cc.height);
+  }
+
+  // Counter
+  document.getElementById('frame-counter').textContent=
+    String(idx+1).padStart(2,'0')+' / '+String(gifAsciiFrames.length).padStart(2,'0');
+
+  // Highlight in list — use scrollIntoView with preventScroll on the page
+  document.querySelectorAll('.frame-item').forEach(el=>el.classList.remove('current-frame'));
+  const curItem=document.getElementById('frame-item-'+idx);
+  if(curItem){
+    curItem.classList.add('current-frame');
+    // Scroll ONLY within the frames-list container, not the page
+    const list=document.getElementById('frames-list');
+    const itemTop=curItem.offsetTop-list.offsetTop;
+    list.scrollTo({top:itemTop-20,behavior:'smooth'});
+  }
+}
+
+function togglePlay(){
+  if(gifPlaying) stopPlay(); else startPlay();
+}
+function startPlay(){
+  gifPlaying=true;
+  document.getElementById('play-btn').textContent='[ ■ STOP ]';
+  playNext();
+}
+function stopPlay(){
+  gifPlaying=false; clearTimeout(gifPlayTimeout);
+  document.getElementById('play-btn').textContent='[ ▶ PLAY ]';
+}
+function playNext(){
+  if(!gifPlaying)return;
+  updateFrameDisplay(gifPlayFrame);
+  const f=gifAsciiFrames[gifPlayFrame];
+  gifPlayFrame=(gifPlayFrame+1)%gifAsciiFrames.length;
+  gifPlayTimeout=setTimeout(playNext,Math.max(20,(f.delay||100)/gifSpeedMult));
+}
+function prevFrame(){ stopPlay(); gifPlayFrame=(gifPlayFrame-1+gifAsciiFrames.length)%gifAsciiFrames.length; updateFrameDisplay(gifPlayFrame); }
+function nextFrame(){ stopPlay(); gifPlayFrame=(gifPlayFrame+1)%gifAsciiFrames.length; updateFrameDisplay(gifPlayFrame); }
+function cycleSpeed(){ gifSpeedIdx=(gifSpeedIdx+1)%speedOptions.length; gifSpeedMult=speedOptions[gifSpeedIdx]; document.getElementById('play-speed').textContent=`VEL: ${gifSpeedMult}x`; }
+
+// ── COLOR MODE ──
+function toggleColorMode(){
+  colorModeOn=!colorModeOn;
+  const preview=document.getElementById('gif-ascii-preview');
+  const cc=document.getElementById('gif-color-canvas');
+  const wrap=document.getElementById('gif-ascii-preview-wrap');
+
+  if(colorModeOn){
+    // Show canvas, mix-blend makes ASCII shine on colors
+    cc.style.display='block';
+    cc.style.mixBlendMode='multiply';
+    preview.style.color='#ffffff';
+    preview.style.mixBlendMode='difference';
+    // Draw current frame color
+    if(gifAsciiFrames[gifPlayFrame]?.canvas){
+      cc.getContext('2d').drawImage(gifAsciiFrames[gifPlayFrame].canvas,0,0,cc.width,cc.height);
+    }
+    wrap.style.background='#000';
+  } else {
+    cc.style.display='none';
+    preview.style.color='var(--green)';
+    preview.style.mixBlendMode='normal';
+    wrap.style.background='var(--bg)';
+  }
+  updateColorToggleBtn();
+}
+function updateColorToggleBtn(){
+  const btn=document.getElementById('color-toggle-btn');
+  btn.textContent=colorModeOn?'[ 🎨 COLOR: ON ]':'[ 🎨 COLOR: OFF ]';
+  btn.classList.toggle('color-on',colorModeOn);
+}
+
+function copySingleFrame(idx){ navigator.clipboard.writeText(gifAsciiFrames[idx].lines.join('\n')).then(()=>showNotif(`Frame ${idx+1} copiado!`)); }
+function copyAllFrames(){
+  const text=gifAsciiFrames.map((f,i)=>`=== FRAME ${i+1}/${gifAsciiFrames.length} (${f.delay}ms) ===\n`+f.lines.join('\n')).join('\n\n');
+  navigator.clipboard.writeText(text).then(()=>showNotif(`${gifAsciiFrames.length} frames copiados!`));
+}
+function downloadAllFrames(){
+  const text=gifAsciiFrames.map((f,i)=>`=== FRAME ${i+1}/${gifAsciiFrames.length} (${f.delay}ms) ===\n`+f.lines.join('\n')).join('\n\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));
+  a.download='ascii-gif-frames.txt'; a.click();
+}
+function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── CONVERSION ENGINE ──
+function doConvertCanvas(source){
+  const cols=parseInt(document.getElementById('r-cols').value);
+  const contrast=parseFloat(document.getElementById('r-contrast').value);
+  const brightness=parseInt(document.getElementById('r-bright').value);
+  const invert=document.getElementById('chk-invert').checked;
+  const edgeMode=document.getElementById('chk-edges').checked;
+  const dither=document.getElementById('chk-dither').checked;
+  const preset=PRESETS[selectedPreset];
+  let chars=preset.chars;
+  if(preset.inv!==invert)chars=chars.split('').reverse().join('');
+  const aspect=0.55;
+  let srcW,srcH;
+  if(source instanceof HTMLCanvasElement){srcW=source.width;srcH=source.height;}
+  else{srcW=source.width||source.naturalWidth;srcH=source.height||source.naturalHeight;}
+  const rows=Math.round((srcH/srcW)*cols*aspect);
+  const canvas=document.createElement('canvas');
+  canvas.width=cols; canvas.height=rows;
+  const ctx=canvas.getContext('2d');
+  ctx.drawImage(source,0,0,cols,rows);
+  const data=ctx.getImageData(0,0,cols,rows);
+  const px=data.data;
+  const gray=new Float32Array(cols*rows);
+  const alpha=new Uint8Array(cols*rows);
+  for(let i=0;i<cols*rows;i++){
+    const r=px[i*4],g=px[i*4+1],b=px[i*4+2],a=px[i*4+3];
+    let L=0.299*r+0.587*g+0.114*b;
+    L=((L+brightness)*contrast);
+    L=Math.max(0,Math.min(255,L));
+    gray[i]=L; alpha[i]=a;
+  }
+  let edgeMap=null;
+  if(edgeMode)edgeMap=sobelEdge(gray,cols,rows);
+  let work=gray.slice();
+  if(dither&&!edgeMode)work=floydSteinberg(work,cols,rows,chars.length);
+  const lines=[];
+  for(let y=0;y<rows;y++){
+    let line='';
+    for(let x=0;x<cols;x++){
+      const idx=y*cols+x;
+      if(alpha[idx]<30){line+=' ';continue;}
+      let val=edgeMap?edgeMap[idx]:work[idx];
+      if(invert)val=255-val;
+      const ci=Math.floor((val/255)*(chars.length-1));
+      line+=chars[Math.max(0,Math.min(chars.length-1,ci))];
+    }
+    lines.push(line);
+  }
+  return{lines};
+}
+
+function sobelEdge(gray,w,h){
+  const out=new Float32Array(w*h);
+  for(let y=1;y<h-1;y++) for(let x=1;x<w-1;x++){
+    const g=(r,c)=>gray[(y+r)*w+(x+c)];
+    const gx=-g(-1,-1)-2*g(0,-1)-g(1,-1)+g(-1,1)+2*g(0,1)+g(1,1);
+    const gy=-g(-1,-1)-2*g(-1,0)-g(-1,1)+g(1,-1)+2*g(1,0)+g(1,1);
+    out[y*w+x]=Math.min(255,Math.sqrt(gx*gx+gy*gy));
+  }
+  return out;
+}
+
+function floydSteinberg(gray,w,h,levels){
+  const buf=Float32Array.from(gray);
+  const step=255/(levels-1);
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    const i=y*w+x,old=buf[i],nw=Math.round(old/step)*step;
+    buf[i]=nw; const err=old-nw;
+    if(x+1<w)buf[i+1]+=err*7/16;
+    if(y+1<h){if(x-1>=0)buf[i+w-1]+=err*3/16;buf[i+w]+=err*5/16;if(x+1<w)buf[i+w+1]+=err*1/16;}
+  }
+  return buf;
+}
+
+// ── STATIC EXPORT ──
+function getAsciiText(){return document.getElementById('ascii-output').innerText;}
+function copyAscii(){navigator.clipboard.writeText(getAsciiText()).then(()=>showNotif('¡Copiado al portapapeles!'));}
+function downloadAscii(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([getAsciiText()],{type:'text/plain'}));a.download='ascii-art.txt';a.click();}
+function downloadPng(){
+  const out=document.getElementById('ascii-output');
+  const canvas=document.createElement('canvas');
+  const fontSize=parseFloat(getComputedStyle(out).fontSize)||7;
+  const lines=getAsciiText().split('\n');
+  const lh=fontSize*1.15;
+  canvas.width=lines[0].length*fontSize*0.6+20; canvas.height=lines.length*lh+20;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#010d03'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle=asciiColor; ctx.font=`${fontSize}px 'Share Tech Mono',monospace`;
+  lines.forEach((l,i)=>ctx.fillText(l,10,10+(i+1)*lh));
+  const a=document.createElement('a'); a.href=canvas.toDataURL('image/png'); a.download='ascii-art.png'; a.click();
+  showNotif('PNG descargado!');
+}
+function changeOutputSize(delta){
+  const out=document.getElementById('ascii-output');
+  const c=parseFloat(out.style.fontSize||7);
+  out.style.fontSize=Math.max(3,c+delta)+'px';
+}
+
+// ═══════════════════════════════════════
+// TEXT ASCII ENGINE
+// ═══════════════════════════════════════
+const ASCII_FONTS={
+  'BLOCK 3D':{h:5,glyphs:{'A':['  /\\  ','  /  \\ ',' / ___ \\','/_/   \\_\\',''],'B':['|\\   ','| \\  ','|_/  ','| \\  ','|_/  '],'C':['  __ ',' /  \\','| _  ','\\  / ',' \\__/'],'D':['|\\ ','| \\','| /','|/ ','   '],'E':['|===','|-- ','|   ','|   ','|==='],'F':['|===','|-- ','|   ','|   ','|   '],'G':['  __ ',' /  \\','| __ ','\\  _/','  \\__'],'H':['|   |','|   |','|===',' |   |','|   |'],'I':['===','| |','| |','| |','==='],'J':['  ===','   | ','   | ','\\  | ',' \\__/'],'K':['|  /','| / ','|<  ','| \\ ','|  \\'],'L':['|   ','|   ','|   ','|   ','|==='],'M':['|\\ /|','| V |','|   |','|   |','|   |'],'N':['|\\  |','| \\ |','|  \\|','|   |','|   |'],'O':['  __ ',' /  \\','|    |','\\  / ',' \\__/'],'P':['|=== ','|   \\','|===/ ','|    ','|    '],'Q':['  __ ',' /  \\','|    |','\\  _/','  \\_\\'],'R':['|=== ','|   \\','|===/ ','|  \\ ','|   \\'],'S':['  ___',' / __','\\__  \\','    \\|',' \\___'],'T':['=====','  |  ','  |  ','  |  ','  |  '],'U':['|   |','|   |','|   |','\\   /','  \\_/'],'V':['\\   /','\\   /','  \\ / ','  \\ / ','   V '],'W':['|   |','|   |','| | |','\\| |/','  V  '],'X':['\\   /','  \\ / ',' / \\ ','/ _ \\','/_/ \\_\\'],'Y':['\\   /','  \\ / ','   |  ','   |  ','   |  '],'Z':['=====','   / ',' /   ','/ _  ','====='],'0':['  __ ',' /  \\','| 0  |','\\  / ',' \\__/'],'1':['  /|','   |','   |','   |',' ==='],'2':['  __ ',' /  \\','   _/','  /_ ','====='],'3':['=== ','   \\','=== ','   \\','=== '],'4':['|  |','|  |','|=== ','   |','   |'],'5':['=====','|__  ','  __ \\','     \\','====/ '],'6':['  /  ',' /__ ','| __ \\','|    \\','  \\__/'],'7':['=====','    /','   / ','  /  ',' /   '],'8':['  __ ',' /  \\','|___ |','\\  __/','  \\_/'],'9':['  __ ',' /  \\','\\____|','    / ','\\___/ '],' ':['     ','     ','     ','     ','     '],'!':['  | ','  | ','  | ','     ','  . '],'?':['  __ ',' /  \\','    /','     ','  .  '],'.':['   ','   ','   ','   ','  .'],'-':['   ','   ','===','   ','   ']}},
+  'PIPES':{h:5,glyphs:{'A':['  /\\  ',' /--\\ ','/ __ \\','|    |','|    |'],'B':['|B--- ','|    \\','|===/ ','|    \\','|---/ '],'C':['  ---','_|   ','|    ','|_   ','  ---'],'D':['|D-- ','|   \\','|    ','|   /','|---/'],'E':['|====','|--- ','|=   ','|    ','|===='],'F':['|====','|--- ','|=   ','|    ','|    '],'G':['  ---','_|   ','|  _-','|   |','  ---'],'H':['|   |','|   |','|=+=|','|   |','|   |'],'I':['|===|','  |  ','  |  ','  |  ','|===|'],'J':['  |==|','     |','     |',' \\   |','  ---'],'K':['|  /','| / ','|<  ','| \\ ','|  \\'],'L':['|    ','|    ','|    ','|    ','|===='],'M':['|V V|','|   |','| | |','|   |','|   |'],'N':['|\\ |','| \\|','|  |','|  |','|  |'],'O':['  ---','|   |','|   |','|   |','  ---'],'P':['|=== ','|   \\','|===/ ','|    ','|    '],'Q':['  ---','|   |','|   |','|  _|','  --/'],'R':['|=== ','|   \\','|===/ ','|  \\ ','|   \\'],'S':['  ===','|    ','  =  ','    |','  ==='],'T':['=====','  |  ','  |  ','  |  ','  |  '],'U':['|   |','|   |','|   |','|   |','  ---'],'V':['|   |','|   |',' \\ / ','  |  ','  ^  '],'W':['|   |','|   |','| | |',' \\|/  ','  V  '],'X':['\\   /','  X  ',' / \\ ','X   X','     '],'Y':['\\   /','  |  ','  |  ','  |  ','  |  '],'Z':['=====','   / ',' /   ','/ __ ','====='],'0':['  0  ','_0  0','|0  0|','|0  0|',' 0--0'],'1':['  /1','   1','   1','   1',' ==='],'2':['  -- ',' /  \\','   --','  /  ',' ----'],'3':['---- ','    \\','----/','    \\','----/'],'4':['|  |','|  |','|--|','   |','   |'],'5':['|====','|    ','|----','     |',' ----'],'6':['  ---','|    ','|----|','|    |','  ---'],'7':['=====','    /','   / ','  /  ',' /   '],'8':['  ---','|   |','  ---','|   |','  ---'],'9':['  ---','|   |','  -+-','    |','  ---'],' ':['     ','     ','     ','     ','     '],'!':['  | ','  | ','  | ','     ','  . '],'?':['  -- ','    \\','   / ','     ','  .  '],'.':['   ','   ','   ','   ','  o'],'-':['   ','   ','---','   ','   ']}},
+  'SIMPLE':{h:3,glyphs:{'A':['./\\.','(A)','/ \\'],'B':['|B|','|=|','|_|'],'C':['(--','(  ','(--'],'D':['|)','| ','|)'],'E':['|=','|-','|='],'F':['|=','|-','|  '],'G':['(- ','( _','(--'],'H':['| |','|=|','| |'],'I':['===','| ','==='],'J':['  |','  |','\_|'],'K':['|/','|>','|\\'],'L':['| ','| ','|='],'M':['|\\/|','|  |','|  |'],'N':['|\\|','|  \\','|   '],'O':['(-)','(o)','(_)'],'P':['|= ','|=-','|   '],'Q':['(-)',' o ','(_\\'],'R':['|= ','|=-','| \\'],'S':[',-','<-','_>'],'T':['=|=','  | ','  | '],'U':['| |','| |',' v '],'V':['\\./','\\./','  V'],'W':['\\  /','\\\\//','  V '],'X':['X','|','X'],'Y':['Y','|','|'],'Z':['=-','  /','=-'],'0':['(0)','(0)','(0)'],'1':['|','|','|'],'2':['_-','/','_-'],'3':['_-','-|','_-'],'4':['|_','  |','  |'],'5':['|=','-<','_>'],'6':['( ','|=','(_)'],'7':['==','  /','  /'],'8':['(.)','(.)','(.)'],'9':['(.)','  )','  )'],' ':['   ','   ','   '],'!':['|','|','.'],'?':['_-',' /','  .'],'.':['  ','  ','. '],'-':['   ','---','   ']}},
+  'MINIMAL':{h:3,glyphs:{'A':['_^_','/A\\','   '],'B':['|B=','|= ','|= '],'C':['(-','(  ','(-'],'D':['|D','| ','|-'],'E':['|=','|-','|='],'F':['|=','|-','|  '],'G':['(--','(  ','(--'],'H':['| |','|=|','| |'],'I':['[I]','[ ]','[_]'],'J':['_J','  |',' _/'],'K':['K/','|<','|\\'],'L':['L  ','|  ','|__'],'M':['|M|','| |','| |'],'N':['|N\\','|  \\','|   '],'O':['oOo','O O','oOo'],'P':['|P=','|=  ','|   '],'Q':['oOo','O O','oO\\'],'R':['|R=','|= ','| \\'],'S':['s= ',' =s','  s'],'T':['=T=','  | ','  | '],'U':['U |','| |',' v '],'V':['V V',' V ','  v'],'W':['WwW',' w ','  v'],'X':['X\\X','  X ','X/X'],'Y':['Y Y',' Y ','  | '],'Z':['=Z=','  /','=_='],'0':['(0)','(0)','(0)'],'1':['1|','  |','  |'],'2':['_2','  |','_  '],'3':['_3','-=','_  '],'4':['4|','|=|','  |'],'5':['5=','|= ','_='],'6':['(6','|=','(_'],'7':['=7','  /','  '],'8':['(8)','>8<','(8)'],'9':['(9)','  )','  )'],' ':['  ','  ','  '],'!':['!','!','.'],'?':['?','? ','.'],'.':['  ','  ','. '],'-':['   ','-- ','   ']}},
+};
+const fontNames=Object.keys(ASCII_FONTS);
+let selectedFont=fontNames[0];
+function initFontPicker(){
+  const picker=document.getElementById('font-picker');
+  fontNames.forEach(name=>{
+    const card=document.createElement('div');
+    card.className='font-card'+(name===selectedFont?' selected':'');
+    card.innerHTML=`<div class="font-card-name">${name}</div><div class="font-card-preview">ABC</div>`;
+    card.onclick=()=>{ document.querySelectorAll('.font-card').forEach(c=>c.classList.remove('selected')); card.classList.add('selected'); selectedFont=name; renderText(); };
+    picker.appendChild(card);
+  });
+}
+initFontPicker();
+function renderText(){
+  const input=document.getElementById('text-input-area').value.toUpperCase();
+  document.getElementById('char-count').textContent=input.length;
+  const font=ASCII_FONTS[selectedFont],h=font.h,fallback=Array(h).fill(' '),rows=Array(h).fill('');
+  [...input].forEach(ch=>{ const g=font.glyphs[ch]||font.glyphs[' ']||fallback; for(let r=0;r<h;r++) rows[r]+=(g[r]||'  ')+' '; });
+  document.getElementById('text-output').textContent=rows.join('\n');
+}
+function updateTextSize(el){ document.getElementById('text-output').style.fontSize=el.value+'px'; document.getElementById('txt-size-label').textContent=`TAMAÑO: ${el.value}px`; }
+function copyText(){ navigator.clipboard.writeText(document.getElementById('text-output').textContent).then(()=>showNotif('¡Texto copiado!')); }
+function downloadText(){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([document.getElementById('text-output').textContent],{type:'text/plain'})); a.download='text-ascii.txt'; a.click(); }
+
+// ═══════════════════════════════════════
+// SCRIPT EXPORT ENGINE
+// ═══════════════════════════════════════
+const LANGS=[
+  {id:'python',icon:'🐍',name:'Python'},
+  {id:'nodejs',icon:'🟩',name:'Node.js'},
+  {id:'bash',icon:'🖥️',name:'Bash'},
+  {id:'ruby',icon:'💎',name:'Ruby'},
+  {id:'go',icon:'🐹',name:'Go'},
+  {id:'php',icon:'🐘',name:'PHP'},
+  {id:'rust',icon:'🦀',name:'Rust'},
+  {id:'java',icon:'☕',name:'Java'},
+  {id:'csharp',icon:'🔷',name:'C#'},
+  {id:'cpp',icon:'⚙️',name:'C++'},
+];
+let selectedLang='python';
+
+function initScriptLangGrid(){
+  const grid=document.getElementById('script-lang-grid');
+  LANGS.forEach(l=>{
+    const btn=document.createElement('button');
+    btn.className='lang-btn'+(l.id===selectedLang?' selected':'');
+    btn.innerHTML=`<span class="lang-icon">${l.icon}</span><span class="lang-name">${l.name}</span>`;
+    btn.onclick=()=>{
+      document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected'); selectedLang=l.id; renderScript();
+    };
+    grid.appendChild(btn);
+  });
+}
+initScriptLangGrid();
+
+function getScriptExt(){ return{python:'py',nodejs:'js',bash:'sh',ruby:'rb',go:'go',php:'php',rust:'rs',java:'java',csharp:'cs',cpp:'cpp'}[selectedLang]||'txt'; }
+
+function renderScript(){
+  const mode=document.getElementById('script-mode-select').value;
+  const lang=LANGS.find(l=>l.id===selectedLang);
+  document.getElementById('script-title').textContent=`SCRIPT :: ${lang.name.toUpperCase()} · ${mode.toUpperCase()}`;
+  document.getElementById('script-output').textContent=generateScript(selectedLang,mode);
+}
+
+function generateScript(lang,mode){
+  const scripts={
+    python:{
+      basic:`#!/usr/bin/env python3
+"""
+ASCII//FORGE — Image/GIF to ASCII converter
+Dependencias: pip install Pillow
+Uso: python ascii_forge.py imagen.png
+      python ascii_forge.py animation.gif
+"""
+import sys
+from PIL import Image
+
+CHARS = '@#S%?*+;:,. '
+COLS  = 80
+ASPECT = 0.55
+
+def to_gray(r, g, b):
+    return int(0.299*r + 0.587*g + 0.114*b)
+
+def frame_to_ascii(img, cols=COLS, invert=False):
+    w, h = img.size
+    rows = int((h / w) * cols * ASPECT)
+    img = img.resize((cols, rows)).convert('RGBA')
+    chars = CHARS[::-1] if invert else CHARS
+    lines = []
+    for y in range(rows):
+        line = ''
+        for x in range(cols):
+            r, g, b, a = img.getpixel((x, y))
+            if a < 30:
+                line += ' '
+                continue
+            gray = to_gray(r, g, b)
+            idx = int(gray / 255 * (len(chars) - 1))
+            line += chars[idx]
+        lines.append(line)
+    return '\\n'.join(lines)
+
+def convert(path, invert=False):
+    img = Image.open(path)
+    if hasattr(img, 'n_frames') and img.n_frames > 1:
+        for i in range(img.n_frames):
+            img.seek(i)
+            print(f"=== FRAME {i+1}/{img.n_frames} ===")
+            print(frame_to_ascii(img.copy(), invert=invert))
+            print()
+    else:
+        print(frame_to_ascii(img, invert=invert))
+
+if __name__ == '__main__':
+    path = sys.argv[1] if len(sys.argv) > 1 else 'image.png'
+    invert = '--invert' in sys.argv
+    convert(path, invert)`,
+
+      random:`#!/usr/bin/env python3
+"""
+ASCII//FORGE — Random Batch Mode
+Convierte imágenes/GIFs aleatorios de una carpeta.
+Dependencias: pip install Pillow
+Uso: python ascii_batch.py ./mi_carpeta [--loop] [--delay 2]
+"""
+import sys, os, random, time
+from PIL import Image
+
+CHARS  = '@#S%?*+;:,. '
+COLS   = 80
+ASPECT = 0.55
+EXTS   = {'.png','.jpg','.jpeg','.gif','.webp','.bmp'}
+
+def to_ascii(img, cols=COLS):
+    w, h = img.size
+    rows = int((h / w) * cols * ASPECT)
+    img  = img.resize((cols, rows)).convert('RGB')
+    out  = []
+    for y in range(rows):
+        line = ''
+        for x in range(cols):
+            r, g, b = img.getpixel((x, y))
+            gray = int(0.299*r + 0.587*g + 0.114*b)
+            line += CHARS[int(gray / 255 * (len(CHARS)-1))]
+        out.append(line)
+    return '\\n'.join(out)
+
+def process_random(folder, loop=False, delay=1.5):
+    files = [f for f in os.listdir(folder)
+             if os.path.splitext(f)[1].lower() in EXTS]
+    if not files:
+        print("No se encontraron imágenes en la carpeta.")
+        return
+    used = []
+    while True:
+        if not used or (loop and len(used) >= len(files)):
+            used = []
+            random.shuffle(files)
+        f = files[len(used)]
+        used.append(f)
+        path = os.path.join(folder, f)
+        print(f"\\n{'='*60}")
+        print(f"  >> {f}")
+        print('='*60)
+        try:
+            img = Image.open(path)
+            if hasattr(img, 'n_frames') and img.n_frames > 1:
+                for i in range(img.n_frames):
+                    img.seek(i)
+                    os.system('cls' if os.name=='nt' else 'clear')
+                    print(to_ascii(img.copy()))
+                    time.sleep(img.info.get('duration', 100) / 1000)
+            else:
+                print(to_ascii(img))
+                time.sleep(delay)
+        except Exception as e:
+            print(f"Error: {e}")
+        if not loop:
+            break
+
+if __name__ == '__main__':
+    folder = sys.argv[1] if len(sys.argv) > 1 else '.'
+    loop   = '--loop' in sys.argv
+    delay  = float(sys.argv[sys.argv.index('--delay')+1]) if '--delay' in sys.argv else 1.5
+    process_random(folder, loop, delay)`,
+
+      watch:`#!/usr/bin/env python3
+"""
+ASCII//FORGE — Watch Mode
+Observa una carpeta y convierte automáticamente archivos nuevos.
+Dependencias: pip install Pillow watchdog
+Uso: python ascii_watch.py ./mi_carpeta
+"""
+import sys, os, time
+from PIL import Image
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+
+CHARS = '@#S%?*+;:,. '
+COLS  = 80
+EXTS  = {'.png','.jpg','.jpeg','.gif','.webp'}
+
+def to_ascii(img):
+    w, h = img.size
+    rows = int((h / w) * COLS * 0.55)
+    img  = img.resize((COLS, rows)).convert('RGB')
+    return '\\n'.join(
+        ''.join(CHARS[int((0.299*r+0.587*g+0.114*b)/255*(len(CHARS)-1))]
+                for r,g,b in [img.getpixel((x,y)) for x in range(COLS)])
+        for y in range(rows)
+    )
+
+class Handler(FileSystemEventHandler):
+    def on_created(self, event):
+        if not event.is_directory:
+            ext = os.path.splitext(event.src_path)[1].lower()
+            if ext in EXTS:
+                time.sleep(0.3)  # esperar a que termine de escribir
+                print(f"\\n>> Nuevo archivo: {event.src_path}")
+                try:
+                    img = Image.open(event.src_path)
+                    print(to_ascii(img))
+                except Exception as e:
+                    print(f"Error: {e}")
+
+if __name__ == '__main__':
+    folder = sys.argv[1] if len(sys.argv) > 1 else '.'
+    print(f"Observando carpeta: {folder}")
+    obs = Observer()
+    obs.schedule(Handler(), folder, recursive=False)
+    obs.start()
+    try:
+        while True: time.sleep(1)
+    except KeyboardInterrupt:
+        obs.stop()
+    obs.join()`,
+
+      server:`#!/usr/bin/env python3
+"""
+ASCII//FORGE — HTTP Server API
+Endpoint POST /convert — sube imagen, recibe ASCII
+Dependencias: pip install Pillow flask
+Uso: python ascii_server.py
+     curl -F "file=@imagen.png" http://localhost:5000/convert
+"""
+from flask import Flask, request, jsonify
+from PIL import Image
+import io
+
+app = Flask(__name__)
+CHARS = '@#S%?*+;:,. '
+
+def to_ascii(img, cols=80):
+    w, h = img.size
+    rows = int((h / w) * cols * 0.55)
+    img  = img.resize((cols, rows)).convert('RGB')
+    lines = []
+    for y in range(rows):
+        line = ''
+        for x in range(cols):
+            r, g, b = img.getpixel((x, y))
+            gray = int(0.299*r + 0.587*g + 0.114*b)
+            line += CHARS[int(gray/255*(len(CHARS)-1))]
+        lines.append(line)
+    return '\\n'.join(lines)
+
+@app.route('/convert', methods=['POST'])
+def convert():
+    if 'file' not in request.files:
+        return jsonify(error='No file'), 400
+    try:
+        cols = int(request.form.get('cols', 80))
+        img  = Image.open(request.files['file'].stream)
+        ascii_art = to_ascii(img, cols)
+        return jsonify(ascii=ascii_art, cols=cols, rows=ascii_art.count('\\n')+1)
+    except Exception as e:
+        return jsonify(error=str(e)), 500
+
+@app.route('/')
+def index():
+    return '<h1>ASCII//FORGE API</h1><p>POST /convert con multipart file=imagen</p>'
+
+if __name__ == '__main__':
+    print("ASCII//FORGE Server en http://localhost:5000")
+    app.run(debug=True)`
+    },
+
+    nodejs:{
+      basic:`// ASCII//FORGE — Image/GIF to ASCII
+// Dependencias: npm install jimp
+// Uso: node ascii.js imagen.png
+const Jimp = require('jimp');
+const path = require('path');
+
+const CHARS = '@#S%?*+;:,. ';
+const COLS  = 80;
+const ASPECT = 0.55;
+
+async function toAscii(imgPath) {
+  const img  = await Jimp.read(imgPath);
+  const cols = COLS;
+  const rows = Math.round((img.getHeight() / img.getWidth()) * cols * ASPECT);
+  img.resize(cols, rows).greyscale();
+  let out = '';
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const px  = Jimp.intToRGBA(img.getPixelColor(x, y));
+      const idx = Math.floor(px.r / 255 * (CHARS.length - 1));
+      out += CHARS[idx];
+    }
+    out += '\\n';
+  }
+  return out;
+}
+
+const file = process.argv[2] || 'image.png';
+toAscii(file).then(ascii => console.log(ascii)).catch(console.error);`,
+
+      random:`// ASCII//FORGE — Random Batch
+// npm install jimp
+const Jimp = require('jimp');
+const fs   = require('fs');
+const path = require('path');
+
+const CHARS = '@#S%?*+;:,. ';
+const EXTS  = ['.png','.jpg','.jpeg','.webp','.bmp'];
+
+async function toAscii(imgPath, cols=80) {
+  const img  = await Jimp.read(imgPath);
+  const rows = Math.round((img.getHeight()/img.getWidth())*cols*0.55);
+  img.resize(cols,rows).greyscale();
+  let out='';
+  for(let y=0;y<rows;y++){
+    for(let x=0;x<cols;x++){
+      const {r}=Jimp.intToRGBA(img.getPixelColor(x,y));
+      out+=CHARS[Math.floor(r/255*(CHARS.length-1))];
+    }
+    out+='\\n';
+  }
+  return out;
+}
+
+async function runRandom(folder='.', loop=false) {
+  let files = fs.readdirSync(folder)
+    .filter(f => EXTS.includes(path.extname(f).toLowerCase()));
+  if(!files.length){ console.log('No images found'); return; }
+  
+  // shuffle
+  files = files.sort(()=>Math.random()-0.5);
+  
+  for(const f of files){
+    console.log('\\n' + '='.repeat(60));
+    console.log('  >> ' + f);
+    console.log('='.repeat(60));
+    try{
+      const ascii = await toAscii(path.join(folder,f));
+      console.log(ascii);
+      await new Promise(r=>setTimeout(r,1500));
+    }catch(e){ console.error('Error:',e.message); }
+    if(!loop && files.indexOf(f)===files.length-1) break;
+  }
+}
+
+const folder = process.argv[2]||'.';
+const loop   = process.argv.includes('--loop');
+runRandom(folder,loop);`,
+
+      watch:`// ASCII//FORGE — Watch Mode
+// npm install jimp chokidar
+const Jimp     = require('jimp');
+const chokidar = require('chokidar');
+const CHARS = '@#S%?*+;:,. ';
+const EXTS  = ['.png','.jpg','.jpeg','.webp'];
+
+async function toAscii(p){
+  const img=await Jimp.read(p);
+  const cols=80,rows=Math.round((img.getHeight()/img.getWidth())*cols*0.55);
+  img.resize(cols,rows).greyscale();
+  let out='';
+  for(let y=0;y<rows;y++){
+    for(let x=0;x<cols;x++){
+      const{r}=Jimp.intToRGBA(img.getPixelColor(x,y));
+      out+=CHARS[Math.floor(r/255*(CHARS.length-1))];
+    }
+    out+='\\n';
+  }
+  return out;
+}
+
+const folder=process.argv[2]||'.';
+console.log('Observando:',folder);
+chokidar.watch(folder,{ignoreInitial:true}).on('add',async p=>{
+  const ext=require('path').extname(p).toLowerCase();
+  if(!EXTS.includes(ext))return;
+  console.log('\\n>> Nuevo:',p);
+  try{ console.log(await toAscii(p)); }catch(e){ console.error(e.message); }
+});`,
+
+      server:`// ASCII//FORGE — HTTP Server
+// npm install jimp express multer
+const express = require('express');
+const multer  = require('multer');
+const Jimp    = require('jimp');
+const app     = express();
+const upload  = multer({storage:multer.memoryStorage()});
+const CHARS   = '@#S%?*+;:,. ';
+
+async function toAscii(buf,cols=80){
+  const img=await Jimp.read(buf);
+  const rows=Math.round((img.getHeight()/img.getWidth())*cols*0.55);
+  img.resize(cols,rows).greyscale();
+  let out='';
+  for(let y=0;y<rows;y++){
+    for(let x=0;x<cols;x++){
+      const{r}=Jimp.intToRGBA(img.getPixelColor(x,y));
+      out+=CHARS[Math.floor(r/255*(CHARS.length-1))];
+    }
+    out+='\\n';
+  }
+  return out;
+}
+
+app.post('/convert',upload.single('file'),async(req,res)=>{
+  try{
+    const cols=parseInt(req.body.cols)||80;
+    const ascii=await toAscii(req.file.buffer,cols);
+    res.json({ascii,cols,rows:ascii.split('\\n').length});
+  }catch(e){res.status(500).json({error:e.message});}
+});
+app.get('/',(_,res)=>res.send('<h1>ASCII//FORGE API</h1><p>POST /convert (multipart file)</p>'));
+app.listen(3000,()=>console.log('ASCII//FORGE Server: http://localhost:3000'));`
+    },
+
+    bash:{
+      basic:`#!/usr/bin/env bash
+# ASCII//FORGE — Bash converter
+# Requiere: ImageMagick (convert), Python3
+# Uso: ./ascii.sh imagen.png [cols]
+set -e
+FILE=\${1:-image.png}
+COLS=\${2:-80}
+[ ! -f "$FILE" ] && echo "Archivo no encontrado: $FILE" && exit 1
+
+python3 - "$FILE" "$COLS" <<'EOF'
+import sys
+from PIL import Image
+CHARS='@#S%?*+;:,. '
+path,cols=sys.argv[1],int(sys.argv[2])
+img=Image.open(path).convert('RGB')
+w,h=img.size
+rows=int((h/w)*cols*0.55)
+img=img.resize((cols,rows))
+for y in range(rows):
+    for x in range(cols):
+        r,g,b=img.getpixel((x,y))
+        gray=int(0.299*r+0.587*g+0.114*b)
+        print(CHARS[int(gray/255*(len(CHARS)-1))],end='')
+    print()
+EOF`,
+
+      random:`#!/usr/bin/env bash
+# ASCII//FORGE — Random Batch (Bash)
+# Requiere: Python3, Pillow
+FOLDER=\${1:-.}
+DELAY=\${2:-2}
+EXTS="png jpg jpeg gif webp"
+while true; do
+  FILES=()
+  for ext in $EXTS; do
+    while IFS= read -r f; do FILES+=("$f"); done < <(find "$FOLDER" -maxdepth 1 -iname "*.$ext" 2>/dev/null)
+  done
+  [ \${#FILES[@]} -eq 0 ] && echo "No images found in $FOLDER" && exit 1
+  # Shuffle
+  IFS=$'\\n' SORTED=($(shuf -e "\${FILES[@]}")); unset IFS
+  for f in "\${SORTED[@]}"; do
+    clear
+    echo "=============================="
+    echo "  >> $(basename "$f")"
+    echo "=============================="
+    python3 -c "
+from PIL import Image
+import sys
+CHARS='@#S%?*+;:,. '
+img=Image.open('$f').convert('RGB').resize((80,30))
+w,h=img.size
+for y in range(h):
+    for x in range(w):
+        r,g,b=img.getpixel((x,y))
+        print(CHARS[int((0.299*r+0.587*g+0.114*b)/255*(len(CHARS)-1))],end='')
+    print()
+"
+    sleep $DELAY
+  done
+done`,
+
+      watch:`#!/usr/bin/env bash
+# ASCII//FORGE — Watch Mode (Bash + inotifywait)
+# Requiere: inotify-tools, Python3, Pillow
+# sudo apt install inotify-tools
+FOLDER=\${1:-.}
+echo "Observando: $FOLDER"
+inotifywait -m -e close_write --format '%w%f' "$FOLDER" | while read FILE; do
+  EXT="\${FILE##*.}"
+  case "\${EXT,,}" in
+    png|jpg|jpeg|gif|webp)
+      echo ">> Nuevo: $FILE"
+      python3 -c "
+from PIL import Image
+CHARS='@#S%?*+;:,. '
+img=Image.open('$FILE').convert('RGB').resize((80,24))
+for y in range(img.height):
+    for x in range(img.width):
+        r,g,b=img.getpixel((x,y))
+        print(CHARS[int((0.299*r+0.587*g+0.114*b)/255*(len(CHARS)-1))],end='')
+    print()
+";;
+  esac
+done`,
+
+      server:`#!/usr/bin/env bash
+# ASCII//FORGE — Simple HTTP server (Bash + netcat)
+# Requiere: nc (netcat), Python3, Pillow
+# Solo para pruebas locales. Para producción usá Flask o Node.
+PORT=\${1:-8888}
+CHARS='@#S%?*+;:,. '
+echo "ASCII//FORGE Server en http://localhost:$PORT"
+echo "POST a /convert con multipart no soportado en bash puro."
+echo "Usá: curl http://localhost:$PORT/ para ver ayuda."
+while true; do
+  echo -e "HTTP/1.1 200 OK\\r\\nContent-Type: text/html\\r\\n\\r\\n<h1>ASCII//FORGE</h1><p>Usá Python o Node para el servidor HTTP completo.</p>" | nc -l -p "$PORT" -q 1
+done`
+    },
+
+    ruby:{
+      basic:`#!/usr/bin/env ruby
+# ASCII//FORGE — Ruby converter
+# gem install mini_magick
+require 'mini_magick'
+CHARS = '@#S%?*+;:,. '
+COLS  = 80
+
+def to_ascii(path, cols = COLS)
+  img  = MiniMagick::Image.open(path)
+  rows = ((img.height.to_f / img.width) * cols * 0.55).round
+  img.resize "#{cols}x#{rows}!"
+  img.colorspace 'Gray'
+  pixels = img.get_pixels
+  pixels.map { |row|
+    row.map { |px|
+      gray = px[0]
+      CHARS[(gray / 255.0 * (CHARS.length - 1)).floor]
+    }.join
+  }.join("\\n")
+end
+
+path = ARGV[0] || 'image.png'
+puts to_ascii(path)`,
+
+      random:`#!/usr/bin/env ruby
+# ASCII//FORGE — Random Batch Ruby
+# gem install mini_magick
+require 'mini_magick'
+CHARS = '@#S%?*+;:,. '
+EXTS  = %w[.png .jpg .jpeg .webp .gif]
+folder = ARGV[0] || '.'
+delay  = (ARGV[1] || 1.5).to_f
+files  = Dir.glob("#{folder}/*").select { |f| EXTS.include?(File.extname(f).downcase) }
+abort "No images found" if files.empty?
+loop do
+  files.shuffle.each do |f|
+    system('clear')
+    puts "=" * 50
+    puts "  >> #{File.basename(f)}"
+    puts "=" * 50
+    begin
+      img  = MiniMagick::Image.open(f)
+      rows = ((img.height.to_f / img.width) * 80 * 0.55).round
+      img.resize "80x#{rows}!"; img.colorspace 'Gray'
+      img.get_pixels.each { |row|
+        puts row.map { |px| CHARS[(px[0]/255.0*(CHARS.length-1)).floor] }.join
+      }
+    rescue => e; puts "Error: #{e.message}"; end
+    sleep delay
+  end
+  break unless ARGV.include?('--loop')
+end`,
+
+      watch:`#!/usr/bin/env ruby
+# ASCII//FORGE — Watch Mode Ruby
+# gem install mini_magick listen
+require 'mini_magick'; require 'listen'
+CHARS='@#S%?*+;:,. '; EXTS=%w[.png .jpg .jpeg .webp]
+folder=ARGV[0]||'.'
+puts "Observando: #{folder}"
+listener=Listen.to(folder) do |mod,add,_|
+  (mod+add).each do |f|
+    next unless EXTS.include?(File.extname(f).downcase)
+    puts "\\n>> #{f}"
+    begin
+      img=MiniMagick::Image.open(f)
+      rows=((img.height.to_f/img.width)*80*0.55).round
+      img.resize "80x#{rows}!"; img.colorspace 'Gray'
+      img.get_pixels.each{|row|puts row.map{|px|CHARS[(px[0]/255.0*(CHARS.length-1)).floor]}.join}
+    rescue=>e;puts "Error: #{e.message}";end
+  end
+end
+listener.start; sleep`,
+
+      server:`#!/usr/bin/env ruby
+# ASCII//FORGE — Sinatra Server
+# gem install sinatra mini_magick
+require 'sinatra'; require 'mini_magick'
+CHARS='@#S%?*+;:,. '
+post '/convert' do
+  content_type :json
+  begin
+    tmp=Tempfile.new(['upload',File.extname(params[:file][:filename])])
+    tmp.write(params[:file][:tempfile].read); tmp.close
+    img=MiniMagick::Image.open(tmp.path)
+    cols=(params[:cols]||80).to_i
+    rows=((img.height.to_f/img.width)*cols*0.55).round
+    img.resize "#{cols}x#{rows}!"; img.colorspace 'Gray'
+    ascii=img.get_pixels.map{|row|row.map{|px|CHARS[(px[0]/255.0*(CHARS.length-1)).floor]}.join}.join("\\n")
+    {ascii:ascii,cols:cols,rows:rows}.to_json
+  rescue=>e;status 500;{error:e.message}.to_json;end
+end
+get('/'){erb '<h1>ASCII//FORGE</h1><p>POST /convert (multipart file)</p>'}`
+    },
+
+    go:{
+      basic:`// ASCII//FORGE — Go converter
+// go mod init ascii_forge && go run main.go imagen.png
+package main
+
+import (
+    "fmt"
+    "image"
+    _ "image/jpeg"
+    _ "image/png"
+    "math"
+    "os"
+    "golang.org/x/image/draw"
+)
+
+const CHARS = "@#S%?*+;:,. "
+const COLS  = 80
+const ASPECT = 0.55
+
+func toAscii(path string) (string, error) {
+    f, err := os.Open(path)
+    if err != nil { return "", err }
+    defer f.Close()
+
+    src, _, err := image.Decode(f)
+    if err != nil { return "", err }
+
+    b    := src.Bounds()
+    cols := COLS
+    rows := int(math.Round(float64(b.Max.Y) / float64(b.Max.X) * float64(cols) * ASPECT))
+
+    dst := image.NewRGBA(image.Rect(0, 0, cols, rows))
+    draw.BiLinear.Scale(dst, dst.Bounds(), src, src.Bounds(), draw.Over, nil)
+
+    result := ""
+    for y := 0; y < rows; y++ {
+        for x := 0; x < cols; x++ {
+            r, g, b, _ := dst.At(x, y).RGBA()
+            gray := (0.299*float64(r) + 0.587*float64(g) + 0.114*float64(b)) / 65535.0
+            idx  := int(gray * float64(len(CHARS)-1))
+            result += string(CHARS[idx])
+        }
+        result += "\\n"
+    }
+    return result, nil
+}
+
+func main() {
+    path := "image.png"
+    if len(os.Args) > 1 { path = os.Args[1] }
+    ascii, err := toAscii(path)
+    if err != nil { fmt.Fprintln(os.Stderr, err); os.Exit(1) }
+    fmt.Print(ascii)
+}`,
+
+      random:`// ASCII//FORGE — Go Random Batch
+// go run main.go ./carpeta
+package main
+
+import (
+    "fmt"; "image"; "math"; "math/rand"; "os"; "path/filepath"; "time"
+    _ "image/jpeg"; _ "image/png"
+    "golang.org/x/image/draw"
+)
+
+const CHARS = "@#S%?*+;:,. "
+
+func toAscii(path string) string {
+    f,_:=os.Open(path); defer f.Close()
+    src,_,err:=image.Decode(f); if err!=nil{return "Error: "+err.Error()}
+    b:=src.Bounds(); cols:=80
+    rows:=int(math.Round(float64(b.Max.Y)/float64(b.Max.X)*float64(cols)*0.55))
+    dst:=image.NewRGBA(image.Rect(0,0,cols,rows))
+    draw.BiLinear.Scale(dst,dst.Bounds(),src,src.Bounds(),draw.Over,nil)
+    out:=""; for y:=0;y<rows;y++{ for x:=0;x<cols;x++{ r,g,b,_:=dst.At(x,y).RGBA(); gray:=(0.299*float64(r)+0.587*float64(g)+0.114*float64(b))/65535.0; out+=string(CHARS[int(gray*float64(len(CHARS)-1))]) }; out+="\\n" }
+    return out
+}
+
+func main(){
+    folder:="."; if len(os.Args)>1{folder=os.Args[1]}
+    exts:=map[string]bool{".png":true,".jpg":true,".jpeg":true,".webp":true}
+    var files []string
+    filepath.Walk(folder,func(p string,i os.FileInfo,_error)error{ if exts[filepath.Ext(p)]{files=append(files,p)}; return nil })
+    if len(files)==0{fmt.Println("No images found");return}
+    rand.Seed(time.Now().UnixNano())
+    rand.Shuffle(len(files),func(i,j int){files[i],files[j]=files[j],files[i]})
+    for _,f:=range files{ fmt.Println("\\n>>",f); fmt.Print(toAscii(f)); time.Sleep(2*time.Second) }
+}`,
+
+      watch:`// ASCII//FORGE — Watch Mode (Go + fsnotify)
+// go get github.com/fsnotify/fsnotify
+package main
+
+import (
+    "fmt"; "image"; "math"; "os"; "path/filepath"
+    _ "image/jpeg"; _ "image/png"
+    "golang.org/x/image/draw"
+    "github.com/fsnotify/fsnotify"
+)
+
+const CHARS = "@#S%?*+;:,. "
+
+func toAscii(path string) string {
+    f,err:=os.Open(path); if err!=nil{return err.Error()}; defer f.Close()
+    src,_,err:=image.Decode(f); if err!=nil{return err.Error()}
+    b:=src.Bounds(); cols:=80; rows:=int(math.Round(float64(b.Max.Y)/float64(b.Max.X)*float64(cols)*0.55))
+    dst:=image.NewRGBA(image.Rect(0,0,cols,rows)); draw.BiLinear.Scale(dst,dst.Bounds(),src,src.Bounds(),draw.Over,nil)
+    out:=""; for y:=0;y<rows;y++{ for x:=0;x<cols;x++{ r,g,b,_:=dst.At(x,y).RGBA(); gray:=(0.299*float64(r)+0.587*float64(g)+0.114*float64(b))/65535.0; out+=string(CHARS[int(gray*float64(len(CHARS)-1))]) }; out+="\\n" }
+    return out
+}
+
+func main(){
+    folder:="."; if len(os.Args)>1{folder=os.Args[1]}
+    w,_:=fsnotify.NewWatcher(); defer w.Close(); w.Add(folder)
+    fmt.Println("Observando:",folder)
+    exts:=map[string]bool{".png":true,".jpg":true,".jpeg":true}
+    for e:=range w.Events{ if e.Op&fsnotify.Create!=0&&exts[filepath.Ext(e.Name)]{ fmt.Println("\\n>>",e.Name); fmt.Print(toAscii(e.Name)) } }
+}`,
+
+      server:`// ASCII//FORGE — HTTP Server (Go)
+// go run server.go  →  POST http://localhost:8080/convert
+package main
+
+import (
+    "encoding/json"; "fmt"; "image"; "math"; "net/http"
+    _ "image/gif"; _ "image/jpeg"; _ "image/png"
+    "golang.org/x/image/draw"
+)
+
+const CHARS = "@#S%?*+;:,. "
+
+func toAscii(src image.Image, cols int) string {
+    b:=src.Bounds(); rows:=int(math.Round(float64(b.Max.Y)/float64(b.Max.X)*float64(cols)*0.55))
+    dst:=image.NewRGBA(image.Rect(0,0,cols,rows)); draw.BiLinear.Scale(dst,dst.Bounds(),src,src.Bounds(),draw.Over,nil)
+    out:=""; for y:=0;y<rows;y++{ for x:=0;x<cols;x++{ r,g,b,_:=dst.At(x,y).RGBA(); gray:=(0.299*float64(r)+0.587*float64(g)+0.114*float64(b))/65535.0; out+=string(CHARS[int(gray*float64(len(CHARS)-1))]) }; out+="\\n" }
+    return out
+}
+
+func main(){
+    http.HandleFunc("/convert",func(w http.ResponseWriter,r *http.Request){
+        if r.Method!="POST"{http.Error(w,"POST only",405);return}
+        r.ParseMultipartForm(10<<20); f,_,err:=r.FormFile("file")
+        if err!=nil{http.Error(w,err.Error(),400);return}; defer f.Close()
+        img,_,err:=image.Decode(f); if err!=nil{http.Error(w,err.Error(),400);return}
+        cols:=80; ascii:=toAscii(img,cols)
+        w.Header().Set("Content-Type","application/json")
+        json.NewEncoder(w).Encode(map[string]interface{}{"ascii":ascii,"cols":cols})
+    })
+    fmt.Println("ASCII//FORGE Server: http://localhost:8080")
+    http.ListenAndServe(":8080",nil)
+}`
+    },
+
+    php:{
+      basic:`<?php
+// ASCII//FORGE — PHP converter
+// Requiere: GD o Imagick
+// Uso: php ascii.php imagen.png
+$CHARS = '@#S%?*+;:,. ';
+$COLS  = 80;
+
+function toAscii($path, $cols=80, $chars='@#S%?*+;:,. ') {
+    $img = imagecreatefromstring(file_get_contents($path));
+    if (!$img) die("No se puede abrir: $path\\n");
+    $w = imagesx($img); $h = imagesy($img);
+    $rows = (int)(($h/$w)*$cols*0.55);
+    $resized = imagescale($img, $cols, $rows);
+    $out = '';
+    for ($y=0; $y<$rows; $y++) {
+        for ($x=0; $x<$cols; $x++) {
+            $px   = imagecolorat($resized, $x, $y);
+            $r = ($px>>16)&0xFF; $g=($px>>8)&0xFF; $b=$px&0xFF;
+            $gray = (int)(0.299*$r + 0.587*$g + 0.114*$b);
+            $idx  = (int)($gray/255*(strlen($chars)-1));
+            $out .= $chars[$idx];
+        }
+        $out .= "\\n";
+    }
+    imagedestroy($img); imagedestroy($resized);
+    return $out;
+}
+
+$file = $argv[1] ?? 'image.png';
+echo toAscii($file);`,
+
+      random:`<?php
+// ASCII//FORGE — PHP Random Batch
+$EXTS = ['png','jpg','jpeg','gif','webp'];
+$folder = $argv[1] ?? '.';
+$delay  = (float)($argv[2] ?? 1.5);
+$files  = array_filter(glob($folder.'/*'), fn($f)=>in_array(strtolower(pathinfo($f,PATHINFO_EXTENSION)),$EXTS));
+if(!$files){echo "No images found\\n";exit;}
+
+function toAscii($path,$cols=80){
+    $chars='@#S%?*+;:,. ';
+    $img=imagecreatefromstring(file_get_contents($path));
+    $w=imagesx($img);$h=imagesy($img);
+    $rows=(int)(($h/$w)*$cols*0.55);
+    $r=imagescale($img,$cols,$rows);$out='';
+    for($y=0;$y<$rows;$y++){for($x=0;$x<$cols;$x++){$px=imagecolorat($r,$x,$y);$gr=(int)(0.299*(($px>>16)&0xFF)+0.587*(($px>>8)&0xFF)+0.114*($px&0xFF));$out.=$chars[(int)($gr/255*(strlen($chars)-1))];}$out.="\\n";}
+    imagedestroy($img);imagedestroy($r);return $out;
+}
+
+shuffle($files);
+foreach($files as $f){
+    system('clear');
+    echo str_repeat('=',50)."\\n  >> ".basename($f)."\\n".str_repeat('=',50)."\\n";
+    echo toAscii($f);
+    usleep($delay*1000000);
+}`,
+
+      watch:`<?php
+// ASCII//FORGE — Watch Mode PHP (polling)
+$folder = $argv[1] ?? '.';
+$EXTS   = ['png','jpg','jpeg','webp'];
+$seen   = [];
+echo "Observando: $folder\\n";
+function toAscii($path){
+    $chars='@#S%?*+;:,. ';$img=imagecreatefromstring(file_get_contents($path));
+    $r=imagescale($img,80,(int)((imagesy($img)/imagesx($img))*80*0.55));$out='';
+    for($y=0;$y<imagesy($r);$y++){for($x=0;$x<imagesx($r);$x++){$px=imagecolorat($r,$x,$y);$g=(int)(0.299*(($px>>16)&0xFF)+0.587*(($px>>8)&0xFF)+0.114*($px&0xFF));$out.=$chars[(int)($g/255*(strlen($chars)-1))];}$out.="\\n";}
+    return $out;
+}
+while(true){
+    foreach(glob($folder.'/*') as $f){
+        $ext=strtolower(pathinfo($f,PATHINFO_EXTENSION));
+        if(!in_array($ext,$EXTS))continue;
+        $mtime=filemtime($f);
+        if(!isset($seen[$f])||$seen[$f]<$mtime){
+            $seen[$f]=$mtime;echo "\\n>> ".basename($f)."\\n".toAscii($f);
+        }
+    }
+    sleep(1);
+}`,
+
+      server:`<?php
+// ASCII//FORGE — PHP HTTP Server
+// php -S localhost:8080 server.php
+function toAscii($data,$cols=80){
+    $chars='@#S%?*+;:,. ';$img=imagecreatefromstring($data);
+    $w=imagesx($img);$h=imagesy($img);$rows=(int)(($h/$w)*$cols*0.55);
+    $r=imagescale($img,$cols,$rows);$out='';
+    for($y=0;$y<$rows;$y++){for($x=0;$x<$cols;$x++){$px=imagecolorat($r,$x,$y);$g=(int)(0.299*(($px>>16)&0xFF)+0.587*(($px>>8)&0xFF)+0.114*($px&0xFF));$out.=$chars[(int)($g/255*(strlen($chars)-1))];}$out.="\\n";}
+    return $out;
+}
+header('Content-Type: application/json');
+if($_SERVER['REQUEST_METHOD']==='POST'&&isset($_FILES['file'])){
+    $data=file_get_contents($_FILES['file']['tmp_name']);
+    $cols=(int)($_POST['cols']??80);
+    echo json_encode(['ascii'=>toAscii($data,$cols),'cols'=>$cols]);
+}else{
+    echo json_encode(['info'=>'POST /  con multipart file=imagen','usage'=>'curl -F file=@img.png http://localhost:8080']);
+}`
+    },
+
+    rust:{
+      basic:`// ASCII//FORGE — Rust converter
+// Cargo.toml: image = "0.24"
+// cargo run -- imagen.png
+use image::{self, imageops::FilterType};
+
+const CHARS: &[u8] = b"@#S%?*+;:,. ";
+const COLS: u32 = 80;
+
+fn to_ascii(path: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let img = image::open(path)?.into_rgb8();
+    let (w, h) = img.dimensions();
+    let rows = ((h as f32 / w as f32) * COLS as f32 * 0.55) as u32;
+    let resized = image::imageops::resize(&img, COLS, rows, FilterType::Lanczos3);
+    let mut out = String::new();
+    for y in 0..rows {
+        for x in 0..COLS {
+            let px   = resized.get_pixel(x, y);
+            let gray = (0.299 * px[0] as f32 + 0.587 * px[1] as f32 + 0.114 * px[2] as f32) as usize;
+            let idx  = gray * (CHARS.len() - 1) / 255;
+            out.push(CHARS[idx] as char);
+        }
+        out.push('\\n');
+    }
+    Ok(out)
+}
+
+fn main() {
+    let path = std::env::args().nth(1).unwrap_or_else(|| "image.png".to_string());
+    match to_ascii(&path) {
+        Ok(ascii) => print!("{}", ascii),
+        Err(e)    => eprintln!("Error: {}", e),
+    }
+}`,
+
+      random:`// ASCII//FORGE — Rust Random Batch
+// Cargo.toml: image="0.24"  rand="0.8"
+use image::{self, imageops::FilterType};
+use rand::seq::SliceRandom;
+use std::{fs, thread, time::Duration, path::Path};
+
+const CHARS: &[u8] = b"@#S%?*+;:,. ";
+
+fn to_ascii(path: &str) -> String {
+    let Ok(img) = image::open(path) else { return "Error".to_string() };
+    let img = img.into_rgb8();
+    let (w,h) = img.dimensions();
+    let rows = ((h as f32/w as f32)*80.0*0.55) as u32;
+    let r = image::imageops::resize(&img,80,rows,FilterType::Lanczos3);
+    let mut out = String::new();
+    for y in 0..rows { for x in 0..80 { let px=r.get_pixel(x,y); let g=(0.299*px[0] as f32+0.587*px[1] as f32+0.114*px[2] as f32) as usize; out.push(CHARS[g*(CHARS.len()-1)/255] as char); } out.push('\\n'); }
+    out
+}
+
+fn main() {
+    let folder = std::env::args().nth(1).unwrap_or_else(||".".into());
+    let exts = ["png","jpg","jpeg","webp"];
+    let mut files: Vec<_> = fs::read_dir(&folder).unwrap()
+        .filter_map(|e|e.ok())
+        .map(|e|e.path())
+        .filter(|p|p.extension().map(|e|exts.contains(&e.to_str().unwrap_or(""))).unwrap_or(false))
+        .collect();
+    if files.is_empty() { println!("No images found"); return; }
+    files.shuffle(&mut rand::thread_rng());
+    for f in &files {
+        println!("\\n>> {}", f.display());
+        print!("{}", to_ascii(f.to_str().unwrap()));
+        thread::sleep(Duration::from_secs_f32(1.5));
+    }
+}`,
+
+      watch:`// ASCII//FORGE — Rust Watch Mode
+// Cargo.toml: image="0.24"  notify="6"
+use image::{self, imageops::FilterType};
+use notify::{Watcher, RecursiveMode, recommended_watcher, Event, EventKind};
+use std::{sync::mpsc, time::Duration, path::PathBuf};
+
+const CHARS: &[u8] = b"@#S%?*+;:,. ";
+
+fn to_ascii(path: &PathBuf) -> String {
+    let Ok(img) = image::open(path) else { return "Error".to_string() };
+    let img=img.into_rgb8(); let(w,h)=img.dimensions();
+    let rows=((h as f32/w as f32)*80.0*0.55)as u32;
+    let r=image::imageops::resize(&img,80,rows,FilterType::Lanczos3);
+    let mut out=String::new();
+    for y in 0..rows{for x in 0..80{let px=r.get_pixel(x,y);let g=(0.299*px[0] as f32+0.587*px[1] as f32+0.114*px[2] as f32)as usize;out.push(CHARS[g*(CHARS.len()-1)/255] as char);}out.push('\\n');}
+    out
+}
+
+fn main(){
+    let folder=std::env::args().nth(1).unwrap_or_else(||".".into());
+    println!("Observando: {folder}");
+    let(tx,rx)=mpsc::channel::<notify::Result<Event>>();
+    let mut w=recommended_watcher(tx).unwrap();
+    w.watch(folder.as_ref(),RecursiveMode::NonRecursive).unwrap();
+    let exts=["png","jpg","jpeg","webp"];
+    for res in rx{if let Ok(e)=res{if matches!(e.kind,EventKind::Create(_)){for p in e.paths{if p.extension().map(|x|exts.contains(&x.to_str().unwrap_or(""))).unwrap_or(false){println!("\\n>> {}",p.display());print!("{}",to_ascii(&p));}}}}}
+}`,
+
+      server:`// ASCII//FORGE — Rust HTTP Server
+// Cargo.toml: image="0.24" actix-web="4" actix-multipart="0.6"
+// cargo run
+use actix_web::{web, App, HttpServer, HttpResponse};
+use actix_multipart::Multipart;
+use image::{self, imageops::FilterType};
+use futures_util::stream::StreamExt;
+
+const CHARS: &[u8] = b"@#S%?*+;:,. ";
+
+fn to_ascii(data: &[u8], cols: u32) -> Result<String, String> {
+    let img=image::load_from_memory(data).map_err(|e|e.to_string())?.into_rgb8();
+    let(w,h)=img.dimensions();
+    let rows=((h as f32/w as f32)*cols as f32*0.55)as u32;
+    let r=image::imageops::resize(&img,cols,rows,FilterType::Lanczos3);
+    let mut out=String::new();
+    for y in 0..rows{for x in 0..cols{let px=r.get_pixel(x,y);let g=(0.299*px[0] as f32+0.587*px[1] as f32+0.114*px[2] as f32)as usize;out.push(CHARS[g*(CHARS.len()-1)/255] as char);}out.push('\\n');}
+    Ok(out)
+}
+
+async fn convert(mut payload: Multipart)->HttpResponse{
+    let mut bytes=Vec::new();
+    while let Some(Ok(mut field))=payload.next().await{ while let Some(Ok(chunk))=field.next().await{ bytes.extend_from_slice(&chunk); } }
+    match to_ascii(&bytes,80){
+        Ok(a)=>HttpResponse::Ok().json(serde_json::json!({"ascii":a})),
+        Err(e)=>HttpResponse::BadRequest().json(serde_json::json!({"error":e})),
+    }
+}
+
+#[actix_web::main]
+async fn main()->std::io::Result<()>{
+    println!("ASCII//FORGE Server: http://localhost:8080");
+    HttpServer::new(||App::new().route("/convert",web::post().to(convert))).bind("0.0.0.0:8080")?.run().await
+}`
+    },
+
+    java:{
+      basic:`// ASCII//FORGE — Java converter
+// Requiere Java 11+, sin dependencias externas
+// javac Ascii.java && java Ascii imagen.png
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+
+public class Ascii {
+    static final String CHARS = "@#S%?*+;:,. ";
+    static final int COLS = 80;
+    static final double ASPECT = 0.55;
+
+    static String toAscii(String path) throws Exception {
+        BufferedImage orig = ImageIO.read(new File(path));
+        int rows = (int)((double)orig.getHeight()/orig.getWidth()*COLS*ASPECT);
+        Image scaled = orig.getScaledInstance(COLS, rows, Image.SCALE_SMOOTH);
+        BufferedImage img = new BufferedImage(COLS, rows, BufferedImage.TYPE_INT_RGB);
+        img.getGraphics().drawImage(scaled, 0, 0, null);
+        StringBuilder sb = new StringBuilder();
+        for (int y=0; y<rows; y++) {
+            for (int x=0; x<COLS; x++) {
+                int px = img.getRGB(x,y);
+                int r=(px>>16)&0xFF, g=(px>>8)&0xFF, b=px&0xFF;
+                int gray = (int)(0.299*r + 0.587*g + 0.114*b);
+                sb.append(CHARS.charAt(gray*(CHARS.length()-1)/255));
+            }
+            sb.append('\\n');
+        }
+        return sb.toString();
+    }
+
+    public static void main(String[] args) throws Exception {
+        String path = args.length>0 ? args[0] : "image.png";
+        System.out.print(toAscii(path));
+    }
+}`,
+
+      random:`// ASCII//FORGE — Java Random Batch
+// javac AsciiRandom.java && java AsciiRandom ./carpeta
+import javax.imageio.ImageIO;
+import java.awt.*; import java.awt.image.BufferedImage;
+import java.io.*; import java.util.*;
+
+public class AsciiRandom {
+    static final String CHARS="@#S%?*+;:,. ";
+    static final Set<String> EXTS=new HashSet<>(Arrays.asList("png","jpg","jpeg","webp"));
+
+    static String toAscii(File f) throws Exception {
+        BufferedImage orig=ImageIO.read(f);
+        int cols=80,rows=(int)((double)orig.getHeight()/orig.getWidth()*cols*0.55);
+        Image s=orig.getScaledInstance(cols,rows,Image.SCALE_SMOOTH);
+        BufferedImage img=new BufferedImage(cols,rows,BufferedImage.TYPE_INT_RGB);
+        img.getGraphics().drawImage(s,0,0,null);
+        StringBuilder sb=new StringBuilder();
+        for(int y=0;y<rows;y++){for(int x=0;x<cols;x++){int px=img.getRGB(x,y);int r=(px>>16)&0xFF,g=(px>>8)&0xFF,b=px&0xFF;int gray=(int)(0.299*r+0.587*g+0.114*b);sb.append(CHARS.charAt(gray*(CHARS.length()-1)/255));}sb.append('\\n');}
+        return sb.toString();
+    }
+
+    public static void main(String[] args) throws Exception {
+        String folder=args.length>0?args[0]:".";
+        File[] files=new File(folder).listFiles(f->{String e=f.getName().replaceAll(".*\\\\.","").toLowerCase();return EXTS.contains(e);});
+        if(files==null||files.length==0){System.out.println("No images found");return;}
+        List<File> list=new ArrayList<>(Arrays.asList(files));
+        Collections.shuffle(list);
+        for(File f:list){System.out.println("\\n>> "+f.getName());System.out.println(toAscii(f));Thread.sleep(1500);}
+    }
+}`,
+
+      watch:`// ASCII//FORGE — Java Watch Mode (WatchService)
+// javac AsciiWatch.java && java AsciiWatch ./carpeta
+import javax.imageio.ImageIO;
+import java.awt.*; import java.awt.image.BufferedImage;
+import java.io.*; import java.nio.file.*; import java.util.*;
+
+public class AsciiWatch {
+    static final String CHARS="@#S%?*+;:,. ";
+    static final Set<String> EXTS=new HashSet<>(Arrays.asList("png","jpg","jpeg","webp"));
+
+    static String toAscii(Path p) throws Exception {
+        BufferedImage orig=ImageIO.read(p.toFile());
+        if(orig==null)throw new Exception("Cannot read");
+        int cols=80,rows=(int)((double)orig.getHeight()/orig.getWidth()*cols*0.55);
+        Image s=orig.getScaledInstance(cols,rows,Image.SCALE_SMOOTH);
+        BufferedImage img=new BufferedImage(cols,rows,BufferedImage.TYPE_INT_RGB);
+        img.getGraphics().drawImage(s,0,0,null);
+        StringBuilder sb=new StringBuilder();
+        for(int y=0;y<rows;y++){for(int x=0;x<cols;x++){int px=img.getRGB(x,y);int r=(px>>16)&0xFF,g=(px>>8)&0xFF,b=px&0xFF;int gray=(int)(0.299*r+0.587*g+0.114*b);sb.append(CHARS.charAt(gray*(CHARS.length()-1)/255));}sb.append('\\n');}
+        return sb.toString();
+    }
+
+    public static void main(String[] args) throws Exception {
+        Path folder=Paths.get(args.length>0?args[0]:".");
+        System.out.println("Observando: "+folder);
+        WatchService ws=FileSystems.getDefault().newWatchService();
+        folder.register(ws,StandardWatchEventKinds.ENTRY_CREATE);
+        while(true){WatchKey k=ws.take();for(WatchEvent<?> e:k.pollEvents()){Path p=folder.resolve((Path)e.context());String ext=p.toString().replaceAll(".*\\\\.","").toLowerCase();if(EXTS.contains(ext)){System.out.println("\\n>> "+p.getFileName());try{System.out.println(toAscii(p));}catch(Exception ex){System.out.println("Error: "+ex.getMessage());}}}k.reset();}
+    }
+}`,
+
+      server:`// ASCII//FORGE — Java HTTP Server (com.sun.net.httpserver)
+// Sin dependencias externas, Java 11+
+// javac AsciiServer.java && java AsciiServer
+import com.sun.net.httpserver.*;
+import javax.imageio.ImageIO;
+import java.awt.*; import java.awt.image.BufferedImage;
+import java.io.*; import java.net.*; import java.nio.charset.StandardCharsets;
+
+public class AsciiServer {
+    static final String CHARS="@#S%?*+;:,. ";
+
+    static String toAscii(byte[] data) throws Exception {
+        BufferedImage orig=ImageIO.read(new ByteArrayInputStream(data));
+        int cols=80,rows=(int)((double)orig.getHeight()/orig.getWidth()*cols*0.55);
+        Image s=orig.getScaledInstance(cols,rows,Image.SCALE_SMOOTH);
+        BufferedImage img=new BufferedImage(cols,rows,BufferedImage.TYPE_INT_RGB);
+        img.getGraphics().drawImage(s,0,0,null);
+        StringBuilder sb=new StringBuilder();
+        for(int y=0;y<rows;y++){for(int x=0;x<cols;x++){int px=img.getRGB(x,y);int r=(px>>16)&0xFF,g=(px>>8)&0xFF,b=px&0xFF;int gray=(int)(0.299*r+0.587*g+0.114*b);sb.append(CHARS.charAt(gray*(CHARS.length()-1)/255));}sb.append('\\n');}
+        return sb.toString();
+    }
+
+    public static void main(String[] args) throws Exception {
+        HttpServer server=HttpServer.create(new InetSocketAddress(8080),0);
+        server.createContext("/convert",ex->{
+            byte[] body=ex.getRequestBody().readAllBytes();
+            String resp;int code;
+            try{String ascii=toAscii(body);resp="{\\"ascii\\":\\""+ascii.replace("\\n","\\\\n")+"\\"\\}";code=200;}
+            catch(Exception e){resp="{\\"error\\":\\""+e.getMessage()+"\\"\\}";code=500;}
+            byte[] rb=resp.getBytes(StandardCharsets.UTF_8);
+            ex.getResponseHeaders().add("Content-Type","application/json");
+            ex.sendResponseHeaders(code,rb.length);ex.getResponseBody().write(rb);ex.close();
+        });
+        System.out.println("ASCII//FORGE Server: http://localhost:8080");
+        server.start();
+    }
+}`
+    },
+
+    csharp:{
+      basic:`// ASCII//FORGE — C# converter
+// dotnet new console && dotnet add package SixLabors.ImageSharp
+// dotnet run -- imagen.png
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.PixelFormats;
+
+const string CHARS = "@#S%?*+;:,. ";
+const int COLS = 80;
+
+string ToAscii(string path)
+{
+    using var img = Image.Load<Rgb24>(path);
+    int rows = (int)((double)img.Height / img.Width * COLS * 0.55);
+    img.Mutate(x => x.Resize(COLS, rows).Grayscale());
+    var sb = new System.Text.StringBuilder();
+    for (int y = 0; y < rows; y++) {
+        for (int x = 0; x < COLS; x++) {
+            var px = img[x, y];
+            int idx = px.R * (CHARS.Length - 1) / 255;
+            sb.Append(CHARS[idx]);
+        }
+        sb.AppendLine();
+    }
+    return sb.ToString();
+}
+
+var file = args.Length > 0 ? args[0] : "image.png";
+Console.Write(ToAscii(file));`,
+
+      random:`// ASCII//FORGE — C# Random Batch
+// dotnet add package SixLabors.ImageSharp
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.PixelFormats;
+
+const string CHARS = "@#S%?*+;:,. ";
+string[] EXTS = {".png",".jpg",".jpeg",".webp"};
+string folder = args.Length>0?args[0]:".";
+
+string ToAscii(string path){
+    using var img=Image.Load<Rgb24>(path);
+    int rows=(int)((double)img.Height/img.Width*80*0.55);
+    img.Mutate(x=>x.Resize(80,rows).Grayscale());
+    var sb=new System.Text.StringBuilder();
+    for(int y=0;y<rows;y++){for(int x=0;x<80;x++){var px=img[x,y];sb.Append(CHARS[px.R*(CHARS.Length-1)/255]);}sb.AppendLine();}
+    return sb.ToString();
+}
+
+var files=Directory.GetFiles(folder).Where(f=>EXTS.Contains(Path.GetExtension(f).ToLower())).ToList();
+if(!files.Any()){Console.WriteLine("No images found");return;}
+var rng=new Random();
+files=files.OrderBy(_=>rng.Next()).ToList();
+foreach(var f in files){
+    Console.Clear();Console.WriteLine("\\n>> "+Path.GetFileName(f));
+    try{Console.Write(ToAscii(f));}catch(Exception e){Console.WriteLine("Error: "+e.Message);}
+    await Task.Delay(1500);
+}`,
+
+      watch:`// ASCII//FORGE — C# Watch Mode
+// dotnet add package SixLabors.ImageSharp
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.PixelFormats;
+
+const string CHARS="@#S%?*+;:,. ";
+string folder=args.Length>0?args[0]:".";
+Console.WriteLine("Observando: "+folder);
+
+string ToAscii(string path){
+    using var img=Image.Load<Rgb24>(path);
+    int rows=(int)((double)img.Height/img.Width*80*0.55);
+    img.Mutate(x=>x.Resize(80,rows).Grayscale());
+    var sb=new System.Text.StringBuilder();
+    for(int y=0;y<rows;y++){for(int x=0;x<80;x++){var px=img[x,y];sb.Append(CHARS[px.R*(CHARS.Length-1)/255]);}sb.AppendLine();}
+    return sb.ToString();
+}
+
+using var watcher=new FileSystemWatcher(folder){EnableRaisingEvents=true};
+watcher.Created+=(s,e)=>{
+    string[]exts={".png",".jpg",".jpeg",".webp"};
+    if(!exts.Contains(Path.GetExtension(e.FullPath).ToLower()))return;
+    Thread.Sleep(300);
+    Console.WriteLine("\\n>> "+e.Name);
+    try{Console.Write(ToAscii(e.FullPath));}catch(Exception ex){Console.WriteLine("Error: "+ex.Message);}
+};
+
+Console.WriteLine("Presioná Ctrl+C para salir."); await Task.Delay(-1);`,
+
+      server:`// ASCII//FORGE — C# ASP.NET Server
+// dotnet add package SixLabors.ImageSharp Microsoft.AspNetCore.App
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.PixelFormats;
+
+const string CHARS = "@#S%?*+;:,. ";
+
+string ToAscii(Stream stream, int cols=80) {
+    using var img=Image.Load<Rgb24>(stream);
+    int rows=(int)((double)img.Height/img.Width*cols*0.55);
+    img.Mutate(x=>x.Resize(cols,rows).Grayscale());
+    var sb=new System.Text.StringBuilder();
+    for(int y=0;y<rows;y++){for(int x=0;x<cols;x++){var px=img[x,y];sb.Append(CHARS[px.R*(CHARS.Length-1)/255]);}sb.AppendLine();}
+    return sb.ToString();
+}
+
+var app=WebApplication.Create();
+app.MapPost("/convert",async(HttpRequest req)=>{
+    var form=await req.ReadFormAsync();
+    var file=form.Files["file"];
+    if(file==null)return Results.BadRequest(new{error="No file"});
+    var cols=int.TryParse(form["cols"],out int c)?c:80;
+    using var stream=file.OpenReadStream();
+    var ascii=ToAscii(stream,cols);
+    return Results.Ok(new{ascii,cols});
+});
+Console.WriteLine("ASCII//FORGE Server: http://localhost:5000");
+await app.RunAsync("http://localhost:5000");`
+    },
+
+    cpp:{
+      basic:`// ASCII//FORGE — C++ converter
+// Requiere: stb_image (header-only)
+// Descarga: https://github.com/nothings/stb/blob/master/stb_image.h
+// g++ -o ascii ascii.cpp && ./ascii imagen.png
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+#include <iostream>
+#include <string>
+#include <cmath>
+
+const std::string CHARS = "@#S%?*+;:,. ";
+const int COLS = 80;
+const double ASPECT = 0.55;
+
+int main(int argc, char* argv[]) {
+    const char* path = argc > 1 ? argv[1] : "image.png";
+    int w, h, ch;
+    // Load and resize via stb
+    unsigned char* data = stbi_load(path, &w, &h, &ch, 3);
+    if (!data) { std::cerr << "Error loading: " << path << std::endl; return 1; }
+
+    int rows = (int)std::round((double)h / w * COLS * ASPECT);
+    // Simple nearest-neighbor resize
+    for (int y = 0; y < rows; y++) {
+        int sy = (int)((double)y / rows * h);
+        for (int x = 0; x < COLS; x++) {
+            int sx = (int)((double)x / COLS * w);
+            int idx = (sy * w + sx) * 3;
+            double gray = 0.299*data[idx] + 0.587*data[idx+1] + 0.114*data[idx+2];
+            int ci = (int)(gray / 255.0 * (CHARS.size()-1));
+            std::cout << CHARS[ci];
+        }
+        std::cout << '\\n';
+    }
+    stbi_image_free(data);
+    return 0;
+}`,
+
+      random:`// ASCII//FORGE — C++ Random Batch
+// g++ -std=c++17 -o ascii_rand ascii_rand.cpp
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+#include <iostream>
+#include <filesystem>
+#include <vector>
+#include <algorithm>
+#include <random>
+#include <thread>
+#include <chrono>
+#include <string>
+namespace fs=std::filesystem;
+const std::string CHARS="@#S%?*+;:,. ";
+
+void printAscii(const fs::path& path){
+    int w,h,ch;
+    auto* d=stbi_load(path.string().c_str(),&w,&h,&ch,3);
+    if(!d){std::cout<<"Error\\n";return;}
+    int cols=80,rows=(int)((double)h/w*cols*0.55);
+    for(int y=0;y<rows;y++){int sy=(int)((double)y/rows*h);for(int x=0;x<cols;x++){int sx=(int)((double)x/cols*w);int i=(sy*w+sx)*3;double g=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];std::cout<<CHARS[(int)(g/255*(CHARS.size()-1))];}std::cout<<'\\n';}
+    stbi_image_free(d);
+}
+
+int main(int argc,char*argv[]){
+    std::string folder=argc>1?argv[1]:".";
+    std::vector<std::string>exts={".png",".jpg",".jpeg",".webp"};
+    std::vector<fs::path>files;
+    for(auto&e:fs::directory_iterator(folder))if(std::find(exts.begin(),exts.end(),e.path().extension().string())!=exts.end())files.push_back(e.path());
+    if(files.empty()){std::cout<<"No images found\\n";return 1;}
+    std::shuffle(files.begin(),files.end(),std::mt19937{std::random_device{}()});
+    for(auto&f:files){std::cout<<"\\n>> "<<f.filename()<<"\\n";printAscii(f);std::this_thread::sleep_for(std::chrono::milliseconds(1500));}
+}`,
+
+      watch:`// ASCII//FORGE — C++ Watch Mode (Linux inotify)
+// g++ -std=c++17 -o ascii_watch ascii_watch.cpp
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+#include <iostream>
+#include <string>
+#include <sys/inotify.h>
+#include <unistd.h>
+#include <limits.h>
+#include <set>
+#include <filesystem>
+namespace fs=std::filesystem;
+const std::string CHARS="@#S%?*+;:,. ";
+const std::set<std::string>EXTS={".png",".jpg",".jpeg",".webp"};
+
+void printAscii(const std::string&path){
+    int w,h,ch;auto*d=stbi_load(path.c_str(),&w,&h,&ch,3);if(!d){std::cout<<"Error\\n";return;}
+    int cols=80,rows=(int)((double)h/w*cols*0.55);
+    for(int y=0;y<rows;y++){int sy=(int)((double)y/rows*h);for(int x=0;x<cols;x++){int sx=(int)((double)x/cols*w);int i=(sy*w+sx)*3;double g=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];std::cout<<CHARS[(int)(g/255*(CHARS.size()-1))];}std::cout<<'\\n';}
+    stbi_image_free(d);
+}
+
+int main(int argc,char*argv[]){
+    std::string folder=argc>1?argv[1]:".";
+    std::cout<<"Observando: "<<folder<<std::endl;
+    int fd=inotify_init();int wd=inotify_add_watch(fd,folder.c_str(),IN_CLOSE_WRITE|IN_MOVED_TO);
+    char buf[4096];
+    while(true){int n=read(fd,buf,sizeof(buf));if(n<=0)break;
+        for(int i=0;i<n;){auto*e=(inotify_event*)(buf+i);
+            if(e->len>0){fs::path p=fs::path(folder)/e->name;if(EXTS.count(p.extension().string())){std::cout<<"\\n>> "<<e->name<<"\\n";printAscii(p.string());}}
+            i+=sizeof(inotify_event)+e->len;}
+    }
+    inotify_rm_watch(fd,wd);close(fd);
+}`,
+
+      server:`// ASCII//FORGE — C++ HTTP (cpp-httplib)
+// Descarga: https://github.com/yhirose/cpp-httplib (header-only)
+// g++ -std=c++17 -o ascii_server ascii_server.cpp -lpthread
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+#include "httplib.h"
+#include <string>
+const std::string CHARS="@#S%?*+;:,. ";
+
+std::string toAscii(const unsigned char*buf,int len){
+    int w,h,ch;auto*d=stbi_load_from_memory(buf,len,&w,&h,&ch,3);
+    if(!d)return "Error";
+    int cols=80,rows=(int)((double)h/w*cols*0.55);
+    std::string out;
+    for(int y=0;y<rows;y++){int sy=(int)((double)y/rows*h);for(int x=0;x<cols;x++){int sx=(int)((double)x/cols*w);int i=(sy*w+sx)*3;double g=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];out+=CHARS[(int)(g/255*(CHARS.size()-1))];}out+='\\n';}
+    stbi_image_free(d);return out;
+}
+
+int main(){
+    httplib::Server svr;
+    svr.Post("/convert",[](const httplib::Request&req,httplib::Response&res){
+        auto f=req.get_file_value("file");
+        if(f.content.empty()){res.status=400;res.set_content("{\\"error\\":\\"No file\\"}","application/json");return;}
+        std::string ascii=toAscii((const unsigned char*)f.content.data(),f.content.size());
+        res.set_content("{\\"ascii\\":\\"...\\"}", "application/json"); // simplificado
+    });
+    printf("ASCII//FORGE Server: http://localhost:8080\\n");
+    svr.listen("0.0.0.0",8080);
+}`
+    },
+  };
+
+  const modeScripts = scripts[lang];
+  if (!modeScripts) return `// Lenguaje '${lang}' próximamente...`;
+  return modeScripts[mode] || modeScripts['basic'] || '// Script no disponible para este modo';
+}
+
+function copyScript(){ navigator.clipboard.writeText(document.getElementById('script-output').textContent).then(()=>showNotif('¡Script copiado!')); }
+function downloadScript(){
+  const lang=LANGS.find(l=>l.id===selectedLang);
+  const mode=document.getElementById('script-mode-select').value;
+  const ext=getScriptExt();
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([document.getElementById('script-output').textContent],{type:'text/plain'}));
+  a.download=`ascii_forge_${mode}.${ext}`; a.click();
+  showNotif(`Script descargado como ascii_forge_${mode}.${ext}`);
+}
+
+// Init script panel
+renderScript();
+
+// ═══════════════════════════════════════
+// NOTIFICATION
+// ═══════════════════════════════════════
+function showNotif(msg){ const n=document.getElementById('notif'); n.textContent='> '+msg; n.classList.add('show'); setTimeout(()=>n.classList.remove('show'),2500); }
+
+renderText();
+</script>
+</body>
+</html>
